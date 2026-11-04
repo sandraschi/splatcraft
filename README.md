@@ -9,10 +9,11 @@
 ## Features & Verbs
 
 * **`splatcraft info --file <scene.ply|spz>`**: Fast header inspection (<10ms). Emits splat count, bounding box, Spherical Harmonics degree, and byte size.
-* **`splatcraft convert --in <in.ply> --to spz --out <out.spz>`**: Headless format conversion & compression.
-* **`splatcraft collider --in <scene.ply> --out <collider.glb>`**: Extracts oriented bounding boxes and collision meshes for import into `gamecraft` / Godot.
-* **`splatcraft create --prompt "..." [--provider marble]`**: Cloud radiance field generation.
-* **`splatcraft train --video <vid.mp4> [--engine nerfstudio]`**: Local RTX 4090 3DGS training.
+* **`splatcraft convert --in <in.ply> --to spz --out <out.spz>`**: Headless format conversion & compression (achieving standard 5x-10x compression).
+* **`splatcraft collider --file <scene.ply> --out <collider.glb>`**: Extracts oriented bounding boxes and binary GLTF 2.0 (`.glb`) mesh colliders for direct import into `gamecraft` and Godot.
+* **`splatcraft create --prompt "..." [--provider marble] [--dry-run]`**: Cloud radiance field generation via World Labs Marble API.
+* **`splatcraft train --input <vid.mp4|images_dir> [--engine nerfstudio|postshot] [--dry-run]`**: Local 3DGS training runner on RTX 4090.
+* **`splatcraft recipe all [--out ./outbox]`**: Executes Democraft headless benchmark recipes emitting `run.json` and markdown reports.
 * **`splatcraft mcp [--allow-path <DIR>]`**: Stdio FastMCP server for AI agents.
 
 ---
