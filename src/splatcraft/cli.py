@@ -11,8 +11,11 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
-from .io import extract_collider, inspect_splat
-from .server import splat_probe_local_engines
+from .cloud import WorldLabsClient
+from .engines import probe_local_engines
+from .io import compress_ply_to_spz, extract_collider, inspect_splat
+from .recipes import RECIPES
+from .train import run_local_training
 
 app = typer.Typer(
     name="splatcraft",
@@ -62,12 +65,37 @@ def info(
 
 
 @app.command()
-def collider(
-    file: Path = typer.Option(..., "--file", "-f", help="Source splat file"),
-    out: Path = typer.Option(..., "--out", "-o", help="Output collider path"),
+def convert(
+    in_file: Path = typer.Option(..., "--in", "-i", help="Source splat file (.ply)"),
+    to: str = typer.Option("spz", "--to", "-t", help="Target format (spz)"),
+    out: Path = typer.Option(..., "--out", "-o", help="Target output file"),
     as_json: bool = typer.Option(False, "--json", help="Emit JSON output"),
 ):
-    """Extracts bounding collider for gamecraft/Godot integration."""
+    """Converts and compresses Gaussian splat files."""
+    try:
+        if to.lower() == "spz":
+            res = compress_ply_to_spz(in_file, out)
+            if as_json:
+                console.print(json.dumps(res, indent=2))
+            else:
+                console.print(
+                    f"[bold green]Converted:[/bold green] {in_file} -> {out} "
+                    f"(ratio: {res['compression_ratio']}x, {res['compressed_bytes']:,} bytes)"
+                )
+        else:
+            raise ValueError(f"Unsupported target format: {to}")
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def collider(
+    file: Path = typer.Option(..., "--file", "-f", help="Source splat file"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output collider path (.glb or .json)"),
+    as_json: bool = typer.Option(False, "--json", help="Emit JSON output"),
+):
+    """Extracts bounding collider (.glb binary mesh or .json) for gamecraft/Godot integration."""
     try:
         world = inspect_splat(file)
         bounds = extract_collider(world, out)
@@ -83,11 +111,70 @@ def collider(
 
 
 @app.command()
+def create(
+    prompt: str = typer.Option(..., "--prompt", "-p", help="Text description of the 3D world"),
+    name: str = typer.Option("", "--name", help="Scene name"),
+    model: str = typer.Option("marble-1.1", "--model", help="World Labs model"),
+    out: Optional[Path] = typer.Option(
+        None, "--out", "-o", help="Output directory for generated SPZ"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Simulate generation without calling API"
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Emit JSON output"),
+):
+    """Generates a 3D radiance field world via World Labs Marble API."""
+    try:
+        client = WorldLabsClient()
+        res = client.generate(prompt=prompt, name=name, model=model, dry_run=dry_run, out_dir=out)
+        if as_json:
+            console.print(res.model_dump_json(indent=2))
+        else:
+            console.print(
+                f"[bold green]World generated ({res.status}):[/bold green] ID={res.world_id} URL={res.spz_url}"
+            )
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def train(
+    input_path: Path = typer.Option(..., "--input", "-i", help="Path to video or image directory"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output directory for trained splat"),
+    engine: str = typer.Option(
+        "nerfstudio", "--engine", "-e", help="Training engine (nerfstudio/postshot)"
+    ),
+    iterations: int = typer.Option(15000, "--iterations", help="Number of training iterations"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Dry-run command planning for CI"),
+    as_json: bool = typer.Option(False, "--json", help="Emit JSON output"),
+):
+    """Trains a local 3D Gaussian Splat on RTX 4090."""
+    try:
+        res = run_local_training(
+            input_path=input_path,
+            out_dir=out,
+            engine=engine,
+            iterations=iterations,
+            dry_run=dry_run,
+        )
+        if as_json:
+            console.print(res.model_dump_json(indent=2))
+        else:
+            console.print(
+                f"[bold green]Training finished ({res.status}):[/bold green] Output: {res.output_ply} ({res.duration_seconds}s)"
+            )
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def engines(
     as_json: bool = typer.Option(False, "--json", help="Emit JSON status"),
 ):
     """Probes local host (RTX 4090) for Nerfstudio and Postshot training engines."""
-    probe = splat_probe_local_engines()
+    probe = probe_local_engines()
     if as_json:
         console.print(json.dumps(probe, indent=2))
     else:
@@ -111,6 +198,35 @@ def engines(
             "RTX 4090 Capable" if probe["ready_for_local_training"] else "No engines detected",
         )
         console.print(table)
+
+
+@app.command()
+def recipe(
+    name: str = typer.Argument("all", help="Recipe name: info, convert, collider, or all"),
+    out: Path = typer.Option(Path("./outbox"), "--out", "-o", help="Base outbox directory"),
+    as_json: bool = typer.Option(False, "--json", help="Emit JSON output"),
+):
+    """Runs headless Democraft recipes and generates run.json artifacts."""
+    results = {}
+    to_run = list(RECIPES.keys()) if name == "all" else [name]
+
+    for rec_name in to_run:
+        if rec_name not in RECIPES:
+            console.print(
+                f"[bold red]Unknown recipe:[/bold red] {rec_name}. Choose from: {list(RECIPES.keys())}"
+            )
+            raise typer.Exit(code=1)
+
+        rec_dir = out / "splat" / rec_name
+        res = RECIPES[rec_name](rec_dir)
+        results[rec_name] = res
+        if not as_json:
+            console.print(
+                f"[bold green]Recipe '{rec_name}':[/bold green] Success -> {rec_dir / 'run.json'}"
+            )
+
+    if as_json:
+        console.print(json.dumps(results, indent=2))
 
 
 @app.command()

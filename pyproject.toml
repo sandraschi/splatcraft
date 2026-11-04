@@ -12,6 +12,7 @@ dependencies = [
     "rich>=13.7.0",
     "numpy>=1.26.0",
     "plyfile>=1.0.0",
+    "httpx>=0.27.0",
 ]
 
 [project.scripts]
