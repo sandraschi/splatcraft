@@ -94,9 +94,22 @@ def engines(
         table = Table(title="Local 3DGS Training Engines")
         table.add_column("Engine", style="cyan")
         table.add_column("Available", style="green")
-        table.add_row("Nerfstudio (ns-train)", str(probe["nerfstudio_present"]))
-        table.add_row("Postshot (postshot-cli)", str(probe["postshot_present"]))
-        table.add_row("Local Training Ready", str(probe["ready_for_local_training"]))
+        table.add_column("Path / Binary", style="dim")
+        table.add_row(
+            "Nerfstudio (ns-train)",
+            str(probe["nerfstudio_present"]),
+            probe["nerfstudio_path"] or "Not found",
+        )
+        table.add_row(
+            "Postshot (postshot-cli)",
+            str(probe["postshot_present"]),
+            probe["postshot_path"] or "Not found",
+        )
+        table.add_row(
+            "Local Training Ready",
+            str(probe["ready_for_local_training"]),
+            "RTX 4090 Capable" if probe["ready_for_local_training"] else "No engines detected",
+        )
         console.print(table)
 
 
