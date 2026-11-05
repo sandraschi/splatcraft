@@ -31,6 +31,17 @@ uv run splatcraft info --file sample.ply --json
 uv run splatcraft mcp
 ```
 
+## Status — does today / next week / non-goals
+
+**Does today:** Python FastMCP, 9 modules incl. recipes.py + train.py; 5 test
+files / 16 fns; cloud (Marble) + local RTX engine matrix; outbox + launcher
+care.
+
+**Next week:** sim/fixture-train discipline (no GPU in CI); Marble
+key-redaction test; 3 fixture-default recipes (live paths token-gated).
+
+**Non-goals:** no GPU-train in CI; live Marble spend never in default CI.
+
 ## Lineage — the Storytold craft-app pattern
 
 Storytold ArtCraft ([storytold/artcraft](https://github.com/storytold/artcraft) — "the IDE for artists") was the starting point. The 16 craft apps in the Storytold stable each ship one binary that is both the human CLI and the agent MCP server (stdio), headless-first, with `run.json` + report artifacts. That modus operandi and harness is what this repo implements; the code here is independent, the pattern is shared.
