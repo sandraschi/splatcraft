@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "crates/splat-formats",
+    "crates/splat-ops",
+    "crates/splat-view",
     "crates/splatcraft-core",
     "crates/splatcraft-mcp",
     "crates/splatcraft-app",

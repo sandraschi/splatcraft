@@ -14,6 +14,8 @@ so tools that write files must emit LF. After bulk writes, check:
 | Crate | Tier | Role |
 |---|---|---|
 | `splat-formats` | lib | PLY and SPZ codecs, stats, synthetic data. No I/O policy. |
+| `splat-ops` | lib | Pure edit ops: crop, prune, transform, merge, reduce_sh |
+| `splat-view` | lib | Headless wgpu render via wgpu-3dgs-viewer 0.8 (wgpu 30, same as egui-wgpu 0.37) |
 | `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
 | `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio |
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
@@ -57,4 +59,8 @@ Apache-2.0/MIT `spz` crate source as reference only; no code copied.
 - PlayCanvas `splat-transform` 3.10 reads our SPZ but does not apply the RUB to RDF flip
   when writing PLY (y and z come out negated versus ours). We follow the reference spz
   converter. Do not "fix" this to match splat-transform without a new decision.
+- `edit` and `merge` work in RDF. SH rotation is not implemented; transforms that rotate
+  splats with SH degree > 0 return `unsupported` instead of faking it.
+- PowerShell strips inner double quotes from native args; pass JSON via `@file.json`.
+- Render tests need a GPU; they skip with a stderr note when no adapter exists.
 - SPZ is lossy by design (8-bit colour, 24-bit fixed positions, quantised SH).
