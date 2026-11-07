@@ -1,0 +1,13 @@
+[package]
+name = "splat-ops"
+description = "Pure edit operations on Gaussian splats: crop, prune, transform, merge, SH reduction"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+splat-formats = { path = "../splat-formats" }
+
+[lints]
+workspace = true
