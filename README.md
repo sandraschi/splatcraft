@@ -22,6 +22,11 @@ Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.
   Request shapes follow the working Python bridge. Tested against a scripted fake transport
   only: no live call has been made yet, and the file upload path (prepare_upload then PUT) is
   untested against the real service.
+- Live viewport in the egui app: type a path, press Load, drag to orbit, wheel to zoom,
+  double-click to reset. It draws through an egui-wgpu paint callback using the same
+  `LiveScene` code as the headless `render`. Verified so far: it compiles, the app starts on
+  the wgpu backend, and the shared scene path passes the GPU render test. Mouse feel (drag
+  direction, zoom speed) and colour on the window surface have not been judged by eye yet.
 - MCP stdio server and CLI over one dispatch bus; egui host with `--smoke`.
 
 Spend guard for `worlds`: `generate` is a dry run unless `confirm_spend` is true. Each
@@ -32,7 +37,7 @@ a per-call `max_credits` can lower it but never raise it. The key comes from
 `WORLDLABS_API_KEY` and is never returned or logged. API credits are separate from the
 marble.worldlabs.ai web credits (check platform.worldlabs.ai).
 
-Not built yet: live egui viewport, training, collision mesh generation of our own,
+Not built yet: training, collision mesh generation of our own,
 texturecraft recolor of monochrome splats, SH rotation. See the plan below.
 
 ## Use
@@ -62,7 +67,7 @@ Set `SPLATCRAFT_ROOT` to confine all paths to a directory.
 | Day | Scope |
 |---|---|
 | 1 | Workspace, PLY and SPZ codecs, inspect, convert, engine probe, gates (done) |
-| 2 | Edit ops (crop, transform, merge, prune), headless render (done); live egui viewport next |
+| 2 | Edit ops (crop, transform, merge, prune), headless render (done); live egui viewport (done, needs a look by eye) |
 | 3 | Marble client (absorbs worldlabs-mcp), spend ledger (done, offline-tested; first live read-only check pending) |
 | 4 | Brush trainer adapter, ffmpeg and COLMAP prep, job ledger, first video-to-splat run |
 | 5 | Collision mesh, texturecraft bridge spike |
