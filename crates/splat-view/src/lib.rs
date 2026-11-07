@@ -130,6 +130,128 @@ fn frame_scene(s: &Splats) -> Option<(Vec3, f32)> {
     Some((centre, d[idx].max(1e-3)))
 }
 
+/// Orbit camera state shared by the headless render and the live viewport.
+#[derive(Clone, Copy, Debug)]
+pub struct View {
+    pub yaw_deg: f32,
+    pub pitch_deg: f32,
+    pub fov_deg: f32,
+    pub distance_scale: f32,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        View {
+            yaw_deg: 0.0,
+            pitch_deg: 0.0,
+            fov_deg: 60.0,
+            distance_scale: 1.0,
+        }
+    }
+}
+
+/// A scene uploaded to the GPU. Used by the headless [`render`] and by the
+/// egui viewport (which draws it inside egui's own render pass), so both
+/// share one code path.
+pub struct LiveScene {
+    viewer: gs::Viewer,
+    centre: Vec3,
+    radius: f32,
+    count: usize,
+}
+
+impl LiveScene {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
+        splats: &Splats,
+        gaussian_scale: f32,
+    ) -> Result<LiveScene, ViewError> {
+        if splats.is_empty() {
+            return Err(ViewError::Input("no splats to render".into()));
+        }
+        let splats = splats.to_coords(Coords::Rdf);
+        let (centre, radius) = frame_scene(&splats)
+            .ok_or_else(|| ViewError::Input("no finite splat positions".into()))?;
+        let ply_bytes = ply::write(&splats).map_err(|e| ViewError::Input(e.to_string()))?;
+        let gaussians = Gaussians::read_from(&mut Cursor::new(ply_bytes), GaussiansSource::Ply)
+            .map_err(|e| ViewError::Input(format!("viewer could not read the scene: {e}")))?;
+        let mut viewer: gs::Viewer = gs::Viewer::new(device, format, &gaussians)
+            .map_err(|e| ViewError::Gpu(format!("viewer: {e}")))?;
+        viewer.update_model_transform(
+            queue,
+            Vec3::ZERO,
+            gs::core::glam::Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI),
+            Vec3::ONE,
+        );
+        let sh = GaussianShDegree::new(splats.sh_degree)
+            .into_iter()
+            .next()
+            .ok_or_else(|| ViewError::Input("bad SH degree".into()))?;
+        let sd = GaussianMaxStdDev::new(3.0)
+            .into_iter()
+            .next()
+            .ok_or_else(|| ViewError::Gpu("bad max std dev".into()))?;
+        viewer.update_gaussian_transform(
+            queue,
+            gaussian_scale,
+            GaussianDisplayMode::Splat,
+            sh,
+            false,
+            sd,
+        );
+        Ok(LiveScene {
+            viewer,
+            centre,
+            radius,
+            count: splats.len(),
+        })
+    }
+
+    pub fn count(&self) -> usize {
+        self.count
+    }
+
+    /// Point the camera for a target of `size` pixels.
+    pub fn set_view(&mut self, queue: &wgpu::Queue, view: &View, size: [u32; 2]) {
+        let fov = view.fov_deg.clamp(10.0, 150.0).to_radians();
+        let scale = if view.distance_scale.is_finite() && view.distance_scale > 0.0 {
+            view.distance_scale
+        } else {
+            1.0
+        };
+        let dist = self.radius / (fov * 0.5).tan() * 1.1 * scale;
+        let mut camera = gs::Camera::new(
+            (dist * 0.01).max(0.01)..(dist * 20.0 + self.radius * 10.0),
+            fov,
+        );
+        camera.yaw_by(view.yaw_deg.to_radians());
+        camera.pitch_by(view.pitch_deg.to_radians());
+        camera.pos = self.centre - camera.get_forward() * dist;
+        self.viewer
+            .update_camera(queue, &camera, UVec2::new(size[0].max(1), size[1].max(1)));
+    }
+
+    /// Depth preprocessing and sorting. Records compute passes only, so it
+    /// must run before the render pass that calls [`LiveScene::draw`].
+    pub fn encode_compute(&self, encoder: &mut wgpu::CommandEncoder) {
+        self.viewer
+            .preprocessor
+            .preprocess(encoder, self.viewer.gaussians_buffer.len() as u32);
+        self.viewer
+            .radix_sorter
+            .sort(encoder, &self.viewer.radix_sort_indirect_args_buffer);
+    }
+
+    /// Draw into an open render pass (blends over whatever is underneath).
+    pub fn draw(&self, pass: &mut wgpu::RenderPass<'_>) {
+        self.viewer
+            .renderer
+            .render_with_pass(pass, &self.viewer.indirect_args_buffer);
+    }
+}
+
 pub fn render(splats: &Splats, opts: &RenderOptions) -> Result<Image, ViewError> {
     if splats.is_empty() {
         return Err(ViewError::Input("no splats to render".into()));
@@ -147,13 +269,6 @@ pub fn render(splats: &Splats, opts: &RenderOptions) -> Result<Image, ViewError>
     {
         return Err(ViewError::Input("camera parameters out of range".into()));
     }
-    let splats = splats.to_coords(Coords::Rdf);
-    let (centre, radius) =
-        frame_scene(&splats).ok_or_else(|| ViewError::Input("no finite splat positions".into()))?;
-    let ply_bytes = ply::write(&splats).map_err(|e| ViewError::Input(e.to_string()))?;
-    let gaussians = Gaussians::read_from(&mut Cursor::new(ply_bytes), GaussiansSource::Ply)
-        .map_err(|e| ViewError::Input(format!("viewer could not read the scene: {e}")))?;
-
     let instance =
         wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle_from_env());
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -171,38 +286,17 @@ pub fn render(splats: &Splats, opts: &RenderOptions) -> Result<Image, ViewError>
     .map_err(|e| ViewError::Gpu(e.to_string()))?;
 
     let format = wgpu::TextureFormat::Rgba8Unorm;
-    let mut viewer: gs::Viewer = gs::Viewer::new(&device, format, &gaussians)
-        .map_err(|e| ViewError::Gpu(format!("viewer: {e}")))?;
-    viewer.update_model_transform(
+    let mut scene = LiveScene::new(&device, &queue, format, splats, opts.gaussian_scale)?;
+    scene.set_view(
         &queue,
-        Vec3::ZERO,
-        gs::core::glam::Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI),
-        Vec3::ONE,
+        &View {
+            yaw_deg: opts.yaw_deg,
+            pitch_deg: opts.pitch_deg,
+            fov_deg: opts.fov_deg,
+            distance_scale: opts.distance_scale,
+        },
+        [opts.width, opts.height],
     );
-    let sh = GaussianShDegree::new(splats.sh_degree)
-        .into_iter()
-        .next()
-        .ok_or_else(|| ViewError::Input("bad SH degree".into()))?;
-    let sd = GaussianMaxStdDev::new(3.0)
-        .into_iter()
-        .next()
-        .ok_or_else(|| ViewError::Gpu("bad max std dev".into()))?;
-    viewer.update_gaussian_transform(
-        &queue,
-        opts.gaussian_scale,
-        GaussianDisplayMode::Splat,
-        sh,
-        false,
-        sd,
-    );
-
-    let fov = opts.fov_deg.to_radians();
-    let dist = radius / (fov * 0.5).tan() * 1.1 * opts.distance_scale;
-    let mut camera = gs::Camera::new((dist * 0.01).max(0.01)..(dist * 20.0 + radius * 10.0), fov);
-    camera.yaw_by(opts.yaw_deg.to_radians());
-    camera.pitch_by(opts.pitch_deg.to_radians());
-    camera.pos = centre - camera.get_forward() * dist;
-    viewer.update_camera(&queue, &camera, UVec2::new(opts.width, opts.height));
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("target"),
@@ -230,7 +324,23 @@ pub fn render(splats: &Splats, opts: &RenderOptions) -> Result<Image, ViewError>
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("render"),
     });
-    viewer.render(&mut encoder, &view);
+    scene.encode_compute(&mut encoder);
+    {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("splatcraft pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            ..Default::default()
+        });
+        scene.draw(&mut pass);
+    }
     encoder.copy_texture_to_buffer(
         texture.as_image_copy(),
         wgpu::TexelCopyBufferInfo {
