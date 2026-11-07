@@ -87,6 +87,19 @@ enum Cmd {
         #[arg(long)]
         args: String,
     },
+    /// Video, images or dataset to splat as a detached job. Takes the
+    /// splat_train arguments as JSON (inline or @file.json), e.g.
+    /// '{"action":"plan","video":"clip.mp4","output":"out.spz"}'.
+    Train {
+        #[arg(long)]
+        args: String,
+    },
+    /// Internal: run one queued job to the end (spawned by `train start`).
+    #[command(name = "job-run", hide = true)]
+    JobRun {
+        #[arg(long)]
+        dir: String,
+    },
     /// Write synthetic random splats (for tests and smoke runs).
     Synth {
         #[arg(long)]
@@ -194,6 +207,23 @@ fn main() {
                     "{}",
                     json!({"success": false, "error": format!("--args is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
                 );
+                1
+            }
+        },
+        Cmd::Train { args } => match read_steps(&args) {
+            Ok(v) => run("train", v),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": format!("--args is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
+                );
+                1
+            }
+        },
+        Cmd::JobRun { dir } => match splatcraft_core::train::run_supervisor(&dir) {
+            Ok(()) => 0,
+            Err(e) => {
+                eprintln!("[splatcraft] job-run failed: {e}");
                 1
             }
         },

@@ -113,6 +113,32 @@ pub fn tools_list() -> Value {
             }
         },
         {
+            "name": "splat_train",
+            "description": "Video, image folder or COLMAP dataset to a splat, as a detached job (ffmpeg frames, COLMAP poses, Brush training, then validated .ply or .spz output). action: plan (dry: resolves tools, checks their --help, shows the exact commands), start (writes a job and launches a supervisor that outlives this call), status (job_id; state running/succeeded/failed/cancelled/lost, per-stage status, log tail), log, cancel, list. Needs brush, and for video or images also colmap (and ffmpeg for video); see splat_engine_status. A real run takes minutes to hours on the GPU. Exactly one of video, images_dir, dataset.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["plan", "start", "status", "log", "cancel", "list"]},
+                    "video": {"type": "string", "description": "Path to a video file (mp4, mov, ...)"},
+                    "images_dir": {"type": "string", "description": "Folder of photos (at least 8 jpg or png)"},
+                    "dataset": {"type": "string", "description": "Existing COLMAP or Nerfstudio dataset folder (skips ffmpeg and COLMAP)"},
+                    "output": {"type": "string", "description": "Result path ending in .ply or .spz"},
+                    "name": {"type": "string"},
+                    "overwrite": {"type": "boolean", "default": false},
+                    "target_frames": {"type": "integer", "minimum": 20, "maximum": 1500, "default": 150, "description": "Frames sampled from a video"},
+                    "max_resolution": {"type": "integer", "minimum": 320, "maximum": 4096, "default": 1600},
+                    "iters": {"type": "integer", "minimum": 100, "maximum": 200000, "default": 10000, "description": "Brush training steps; Brush's own default is 30000"},
+                    "max_splats": {"type": "integer", "minimum": 10000, "maximum": 20000000, "default": 2000000},
+                    "sh_degree": {"type": "integer", "minimum": 0, "maximum": 3, "default": 3},
+                    "quality": {"type": "string", "enum": ["low", "medium", "high", "extreme"], "default": "medium", "description": "COLMAP reconstruction quality"},
+                    "job_id": {"type": "string"},
+                    "lines": {"type": "integer", "default": 15, "description": "Log lines to return"},
+                    "limit": {"type": "integer", "default": 10}
+                },
+                "required": ["action"]
+            }
+        },
+        {
             "name": "splat_engine_status",
             "description": "Report which external engines (brush, ns-train, colmap, ffmpeg, splat-transform, bunx) are present on PATH. Honest up/down, no execution.",
             "inputSchema": {"type": "object", "properties": {}}
@@ -143,6 +169,7 @@ fn op_for(tool: &str) -> Option<&'static str> {
         "splat_merge" => Some("merge"),
         "splat_render" => Some("render"),
         "splat_worlds" => Some("worlds"),
+        "splat_train" => Some("train"),
         "splat_engine_status" => Some("engine_status"),
         "splat_synth" => Some("synth"),
         _ => None,
@@ -246,6 +273,7 @@ mod tests {
                 "splat_merge",
                 "splat_render",
                 "splat_worlds",
+                "splat_train",
                 "splat_engine_status",
                 "splat_synth"
             ]
