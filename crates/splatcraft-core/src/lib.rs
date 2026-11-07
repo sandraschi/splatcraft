@@ -13,6 +13,7 @@ pub mod error;
 pub mod ops;
 pub mod paths;
 pub mod render;
+pub mod worlds;
 
 pub use error::{error_json, Error, Result};
 
@@ -30,6 +31,7 @@ pub const OPS: &[&str] = &[
     "edit",
     "merge",
     "render",
+    "worlds",
 ];
 
 /// Run `op` with JSON `args`. The only function front ends need.
@@ -43,6 +45,7 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "edit" => edit::edit(args),
         "merge" => edit::merge(args),
         "render" => render::render(args),
+        "worlds" => worlds::worlds(args),
         other => Err(Error::Invalid(format!(
             "unknown op '{other}' (known: {})",
             OPS.join(", ")

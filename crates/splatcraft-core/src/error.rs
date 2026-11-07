@@ -14,6 +14,13 @@ pub enum Error {
     Exists(String),
     Unsupported(String),
     Io(String),
+    /// Missing or rejected API key.
+    Auth(String),
+    Network(String),
+    /// Non-success reply from a remote API.
+    Api(String),
+    /// Cumulative spend cap would be exceeded.
+    CapExceeded(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -27,6 +34,10 @@ impl Error {
             Error::Exists(_) => "exists",
             Error::Unsupported(_) => "unsupported",
             Error::Io(_) => "io",
+            Error::Auth(_) => "auth",
+            Error::Network(_) => "network",
+            Error::Api(_) => "api",
+            Error::CapExceeded(_) => "cap_exceeded",
         }
     }
 }
@@ -39,7 +50,11 @@ impl fmt::Display for Error {
             | Error::Outside(m)
             | Error::Exists(m)
             | Error::Unsupported(m)
-            | Error::Io(m) => f.write_str(m),
+            | Error::Io(m)
+            | Error::Auth(m)
+            | Error::Network(m)
+            | Error::Api(m)
+            | Error::CapExceeded(m) => f.write_str(m),
         }
     }
 }
