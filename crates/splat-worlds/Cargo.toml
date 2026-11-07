@@ -1,0 +1,22 @@
+[package]
+name = "splat-worlds"
+description = "World Labs Marble API client with a spend ledger and hard credit cap (replaces worldlabs-mcp generation)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+splat-formats = { path = "../splat-formats" }
+serde_json = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+
+[features]
+# Exposes the scripted fake transport to dependent crates' tests.
+testing = []
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
