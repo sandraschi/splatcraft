@@ -1,0 +1,17 @@
+[package]
+name = "splatcraft-core"
+description = "splatcraft L1: the single dispatch bus shared by CLI, MCP and app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+splat-formats = { path = "../splat-formats" }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
