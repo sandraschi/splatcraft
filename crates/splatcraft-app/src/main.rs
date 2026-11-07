@@ -29,9 +29,22 @@ fn main() {
         }
         return;
     }
+    let mut options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
+        ..Default::default()
+    };
+    // The splat viewer needs the adapter's real limits (large storage buffers),
+    // not wgpu's conservative defaults.
+    if let eframe::egui_wgpu::WgpuSetup::CreateNew(c) = &mut options.wgpu_options.wgpu_setup {
+        c.device_descriptor = std::sync::Arc::new(|adapter| eframe::wgpu::DeviceDescriptor {
+            label: Some("splatcraft device"),
+            required_limits: adapter.limits(),
+            ..Default::default()
+        });
+    }
     let run = eframe::run_native(
         "splatcraft",
-        eframe::NativeOptions::default(),
+        options,
         Box::new(
             |_cc| -> Result<Box<dyn eframe::App>, Box<dyn std::error::Error + Send + Sync>> {
                 Ok(Box::new(app::SplatApp::default()))

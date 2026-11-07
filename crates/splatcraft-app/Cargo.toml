@@ -12,8 +12,9 @@ path = "src/main.rs"
 
 [dependencies]
 splatcraft-core = { path = "../splatcraft-core" }
+splat-view = { path = "../splat-view" }
 serde_json = { workspace = true }
-eframe = "0.37"
+eframe = { version = "0.37", features = ["wgpu"] }
 
 [lints]
 workspace = true
