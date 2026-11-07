@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use crate::paths::{resolve, str_arg};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Format {
+pub(crate) enum Format {
     Ply,
     Spz,
 }
@@ -23,7 +23,7 @@ impl Format {
     }
 }
 
-fn format_of(path: &Path) -> Result<Format> {
+pub(crate) fn format_of(path: &Path) -> Result<Format> {
     match path
         .extension()
         .and_then(|e| e.to_str())
@@ -41,7 +41,7 @@ fn format_of(path: &Path) -> Result<Format> {
     }
 }
 
-fn load(path: &Path) -> Result<(Splats, Format, u64)> {
+pub(crate) fn load(path: &Path) -> Result<(Splats, Format, u64)> {
     let fmt = format_of(path)?;
     let bytes = std::fs::read(path)?;
     let size = bytes.len() as u64;
@@ -52,7 +52,7 @@ fn load(path: &Path) -> Result<(Splats, Format, u64)> {
     Ok((s, fmt, size))
 }
 
-fn save(path: &Path, s: &Splats, fmt: Format) -> Result<u64> {
+pub(crate) fn save(path: &Path, s: &Splats, fmt: Format) -> Result<u64> {
     let bytes = match fmt {
         Format::Ply => ply::write(s)?,
         Format::Spz => spz::write(s)?,

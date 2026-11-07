@@ -8,6 +8,8 @@ repository.workspace = true
 
 [dependencies]
 splat-formats = { path = "../splat-formats" }
+splat-ops = { path = "../splat-ops" }
+splat-view = { path = "../splat-view" }
 serde_json = { workspace = true }
 
 [dev-dependencies]
