@@ -16,6 +16,16 @@ pub mod render;
 pub mod worlds;
 
 pub use error::{error_json, Error, Result};
+pub use splat_formats::Splats;
+
+/// Load a splat file for in-process viewers (honours `SPLATCRAFT_ROOT`).
+pub fn load_splats(path: &str) -> Result<Splats> {
+    if path.is_empty() || path.chars().count() > paths::MAX_ARG_CHARS || path.contains('\0') {
+        return Err(Error::Invalid("invalid path".into()));
+    }
+    let p = paths::resolve(path)?;
+    Ok(ops::load(&p)?.0)
+}
 
 use serde_json::Value;
 
