@@ -16,6 +16,7 @@ so tools that write files must emit LF. After bulk writes, check:
 | `splat-formats` | lib | PLY and SPZ codecs, stats, synthetic data. No I/O policy. |
 | `splat-ops` | lib | Pure edit ops: crop, prune, transform, merge, reduce_sh |
 | `splat-view` | lib | Headless wgpu render via wgpu-3dgs-viewer 0.8 (wgpu 30, same as egui-wgpu 0.37) |
+| `splat-worlds` | lib | Marble API client behind a `Transport` trait, JSONL spend ledger, credit cap (reqwest blocking, rustls) |
 | `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
 | `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio |
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
@@ -63,4 +64,9 @@ Apache-2.0/MIT `spz` crate source as reference only; no code copied.
   splats with SH degree > 0 return `unsupported` instead of faking it.
 - PowerShell strips inner double quotes from native args; pass JSON via `@file.json`.
 - Render tests need a GPU; they skip with a stderr note when no adapter exists.
+- Marble spend is real money. `worlds generate` must stay a dry run unless `confirm_spend`
+  is true, and the ledger entry is written only after a successful POST. Never run a
+  confirmed generate without the owner's explicit say-so. Never print or return the API
+  key (`WORLDLABS_API_KEY`). Tests use the fake transport (`splat-worlds` feature `testing`),
+  never the network. Tests that touch `SPLATCRAFT_DATA` or the cap env serialize on a mutex.
 - SPZ is lossy by design (8-bit colour, 24-bit fixed positions, quantised SH).
