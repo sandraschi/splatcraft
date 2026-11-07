@@ -1,47 +1,45 @@
 # splatcraft
 
-**3D Gaussian Splat & Radiance Field manipulation CLI and MCP server.**
+Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.
 
-`splatcraft` is part of the fleet's Craft-pattern application stable (`artcraft`, `gamecraft`, `travelcraft`, `solidcraft`). It unifies cloud radiance field generation (World Labs Marble API) and zero-cost local RTX 4090 training (Nerfstudio / Splatfacto / Postshot) into a headless CLI and stdio MCP server.
+**Status: Day 1.** What works today, and nothing else is claimed:
 
----
+- Read and write binary PLY (3DGS layout, SH degree 0 to 3).
+- Read SPZ v2 and v3, write SPZ v3. SPZ v4 (zstd) is rejected with a clear error.
+- `inspect`: count, bounding box, SH degree, opacity and scale stats, non-finite count.
+- `convert`: PLY <-> SPZ, atomic write, no overwrite unless asked.
+- `engine_status`: honest up/down for brush, ns-train, colmap, ffmpeg, splat-transform, bunx
+  (PATH probe only, nothing is executed).
+- MCP stdio server and CLI over one dispatch bus; egui host with `--smoke`.
 
-## Features & Verbs
+Not built yet: training, world generation (Marble), splat editing, viewer, collision mesh,
+texturecraft recolor of monochrome splats. See the plan below.
 
-* **`splatcraft info --file <scene.ply|spz>`**: Fast header inspection (<10ms). Emits splat count, bounding box, Spherical Harmonics degree, and byte size.
-* **`splatcraft convert --in <in.ply> --to spz --out <out.spz>`**: Headless format conversion & compression (achieving standard 5x-10x compression).
-* **`splatcraft collider --file <scene.ply> --out <collider.glb>`**: Extracts oriented bounding boxes and binary GLTF 2.0 (`.glb`) mesh colliders for direct import into `gamecraft` and Godot.
-* **`splatcraft create --prompt "..." [--provider marble] [--dry-run]`**: Cloud radiance field generation via World Labs Marble API.
-* **`splatcraft train --input <vid.mp4|images_dir> [--engine nerfstudio|postshot] [--dry-run]`**: Local 3DGS training runner on RTX 4090.
-* **`splatcraft recipe all [--out ./outbox]`**: Executes Democraft headless benchmark recipes emitting `run.json` and markdown reports.
-* **`splatcraft mcp [--allow-path <DIR>]`**: Stdio FastMCP server for AI agents.
+## Use
 
----
-
-## Quickstart
-
-```bash
-# Sync environment
-uv sync
-
-# Inspect a splat file
-uv run splatcraft info --file sample.ply --json
-
-# Run MCP server
-uv run splatcraft mcp
+```
+just ci                                   # fmt, clippy, tests
+cargo run -p splatcraft-mcp -- inspect --path scene.ply
+cargo run -p splatcraft-mcp -- convert --input scene.ply --output scene.spz
+cargo run -p splatcraft-mcp -- engines
+cargo run -p splatcraft-mcp -- mcp        # MCP stdio server
+cargo run -p splatcraft --bin splatcraft  # desktop host
 ```
 
-## Status — does today / next week / non-goals
+MCP tools: `splat_inspect`, `splat_convert`, `splat_engine_status`, `splat_synth`.
+Set `SPLATCRAFT_ROOT` to confine all paths to a directory.
 
-**Does today:** Python FastMCP, 9 modules incl. recipes.py + train.py; 5 test
-files / 16 fns; cloud (Marble) + local RTX engine matrix; outbox + launcher
-care.
+## Plan (AI-assisted days)
 
-**Next week:** sim/fixture-train discipline (no GPU in CI); Marble
-key-redaction test; 3 fixture-default recipes (live paths token-gated).
+| Day | Scope |
+|---|---|
+| 1 | Workspace, PLY and SPZ codecs, inspect, convert, engine probe, gates (done) |
+| 2 | Edit ops (crop, transform, merge, prune), viewer spike |
+| 3 | Marble client (absorbs worldlabs-mcp), spend ledger |
+| 4 | Brush trainer adapter, ffmpeg and COLMAP prep, job ledger, first video-to-splat run |
+| 5 | Collision mesh, texturecraft bridge spike |
+| 6 to 7 | Recolor of grey splats, democraft recipes, installer |
 
-**Non-goals:** no GPU-train in CI; live Marble spend never in default CI.
+## License
 
-## Lineage — the Storytold craft-app pattern
-
-Storytold ArtCraft ([storytold/artcraft](https://github.com/storytold/artcraft) — "the IDE for artists") was the starting point. The 16 craft apps in the Storytold stable each ship one binary that is both the human CLI and the agent MCP server (stdio), headless-first, with `run.json` + report artifacts. That modus operandi and harness is what this repo implements; the code here is independent, the pattern is shared.
+MIT OR Apache-2.0.

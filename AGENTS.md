@@ -1,23 +1,60 @@
-# AGENTS.md — splatcraft
+# splatcraft agent rules
 
-**Purpose**: Guidance for coding agents working in the `splatcraft` repository.
-**Scope**: 3D Gaussian Splats, radiance fields, and spatial world manipulation CLI + FastMCP server.
+Pure-Rust ArtCraft-pattern app for Gaussian splats. Three tiers, one bus.
 
-## Architectural Role
+## Line endings: LF ONLY
 
-`splatcraft` is the Craft-pattern successor fusing:
-- `worldlabs-mcp` (World Labs Marble API, Spark 2.0 streaming, Godot scene portals)
-- `splatmaker-mcp` (local Nerfstudio/Postshot training on RTX 4090)
+Every file in this repo uses LF line endings. Never write CRLF.
+`.gitattributes` enforces `eol=lf`, but the Windows host has `core.autocrlf=true`,
+so tools that write files must emit LF. After bulk writes, check:
+`git ls-files --eol` must show `w/lf` for every text file.
 
-It adheres to the Craft standard defined in `mcp-central-docs/projects/craft-fleet-rebuild/PLAN.md` and `splatcraft-DOSSIER.md`:
-1. **Single Model**: `SplatWorld` (3DGS point cloud, bounding box, camera trajectory, collision mesh).
-2. **Headless Verbs**: `info`, `convert`, `collider`, `generate`, `train`, `render`.
-3. **Files In / Out**: Reads/writes `.ply`, `.spz`, `.rad`, `.glb` colliders, and `run.json` artifacts in `outbox/`.
-4. **Thin MCP Bridge**: FastMCP 3.x stdio transport for agent invocation.
+## Layout
 
-## Conventions
+| Crate | Tier | Role |
+|---|---|---|
+| `splat-formats` | lib | PLY and SPZ codecs, stats, synthetic data. No I/O policy. |
+| `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
+| `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio |
+| `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
 
-- Python $\ge$ 3.11 with `uv`, `ruff`, and `justfile`.
-- CLI entrypoint: `splatcraft` / `splatcraft-cli`.
-- MCP stdio: `splatcraft mcp --allow-path <DIR>`.
-- Never execute long training loops in unit tests or CI; mock subprocess probes or use offline fixture PLY files.
+CLI, MCP and app share `dispatch`. Never put logic in a front end.
+
+## Rules
+
+- Workspace lints deny `unwrap_used`, `expect_used`, `panic`, `unimplemented`, `todo`.
+  Tests may `#![allow]` unwrap/expect.
+- stdout of the MCP server is 100% JSON-RPC. Logs go to stderr.
+- Errors are `{success:false,error,error_type}`. No silent fallbacks.
+- String args capped at 4096 chars. If `SPLATCRAFT_ROOT` is set, paths must stay inside it.
+- Hostile input: validate sizes against real byte length before allocating.
+- No stubs presented as features. Unsupported formats return `unsupported` (SPZ v4 does today).
+- No mocks that hide missing behaviour. `synth` data is labelled synthetic.
+- No em dashes in docs, code or commit messages.
+- Realistic AI-assisted timelines (days, not weeks) in all docs.
+
+## Gates (all must be green before commit)
+
+`just fmt-check`, `just check` (clippy `-D warnings`), `just test`, `just build-release`,
+then `splatcraft --smoke`. `just ci` runs the first three.
+
+## Git
+
+Work on the existing branch. Do not create branches for routine work. One commit per
+crate or concern, small. Do not push without being asked.
+
+## Lineage
+
+Replaces the earlier Python splatcraft (removed, nothing reused). Absorbs over time the
+functions of `worldlabs-mcp` (Marble world generation) and `splatmaker-mcp` (video and
+images to splat); those repos stay untouched. SPZ layout was verified against the
+Apache-2.0/MIT `spz` crate source as reference only; no code copied.
+
+## Known facts worth remembering
+
+- PLY is RDF (right, down, front); SPZ is RUB. `Splats::convert_coords` flips y and z.
+  The reader sets `coords`, the writers convert as their format requires.
+- PlayCanvas `splat-transform` 3.10 reads our SPZ but does not apply the RUB to RDF flip
+  when writing PLY (y and z come out negated versus ours). We follow the reference spz
+  converter. Do not "fix" this to match splat-transform without a new decision.
+- SPZ is lossy by design (8-bit colour, 24-bit fixed positions, quantised SH).

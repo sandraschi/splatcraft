@@ -1,31 +1,33 @@
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+
+# splatcraft automation (Pure-Rust ArtCraft pattern)
+
 default:
     @just --list
 
-# Install dependencies with uv
-install:
-    uv sync
+# Strict lint gate across all workspace members
+check:
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-# Run test suite
+# Unit + integration tests
 test:
-    uv run pytest -v tests/
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo test --workspace
 
-# Format code with ruff
-format:
-    uv run ruff format .
-    uv run ruff check --fix .
+# Formatting gate
+fmt-check:
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo fmt --all --check
 
-# Lint check
-lint:
-    uv run ruff check .
-    uv run ruff format --check .
+# All gates in one command
+ci: fmt-check check test
 
-# Run CI checks
-ci: lint test
+# MCP stdio server (a client normally starts this; useful for a manual probe)
+run-mcp:
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo run -q -p splatcraft-mcp -- mcp
 
-# Run CLI
-run *ARGS:
-    uv run splatcraft {{ARGS}}
+# CLI smoke: status then engine probe
+run-cli:
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo run -q -p splatcraft-mcp -- status; cargo run -q -p splatcraft-mcp -- engines
 
-# Run stdio MCP server
-mcp:
-    uv run splatcraft mcp
+# Production build
+build-release:
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"; cargo build --release --workspace
