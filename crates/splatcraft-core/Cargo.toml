@@ -11,6 +11,7 @@ splat-formats = { path = "../splat-formats" }
 splat-ops = { path = "../splat-ops" }
 splat-view = { path = "../splat-view" }
 splat-worlds = { path = "../splat-worlds" }
+splat-train = { path = "../splat-train" }
 serde_json = { workspace = true }
 
 [dev-dependencies]

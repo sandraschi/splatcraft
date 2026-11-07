@@ -4,6 +4,7 @@ members = [
     "crates/splat-ops",
     "crates/splat-view",
     "crates/splat-worlds",
+    "crates/splat-train",
     "crates/splatcraft-core",
     "crates/splatcraft-mcp",
     "crates/splatcraft-app",

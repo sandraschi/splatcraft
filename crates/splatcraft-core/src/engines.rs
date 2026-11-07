@@ -1,81 +1,59 @@
-//! Engine probe. Looks for external tools on PATH without executing them and
+//! Engine probe. Looks for external tools without executing them and
 //! reports honestly: `up` only when the binary was actually found.
-
-use std::path::{Path, PathBuf};
+//!
+//! Lookup order per tool: `SPLATCRAFT_<TOOL>` override, PATH, then the
+//! tools directory (`SPLATCRAFT_TOOLS`, default `./tools`).
 
 use serde_json::{json, Value};
+use splat_train::locate::locate;
 
-/// (engine name, binary names to look for, what it is used for)
-const ENGINES: &[(&str, &[&str], &str)] = &[
+/// (engine name, override variable, binary names to look for, what it is used for)
+const ENGINES: &[(&str, &str, &[&str], &str)] = &[
     (
         "brush",
-        &["brush", "brush_app"],
+        "SPLATCRAFT_BRUSH",
+        &["brush", "brush_app", "brush-app", "brush-cli"],
         "default trainer (COLMAP or Nerfstudio dataset to splat)",
     ),
     (
         "nerfstudio",
+        "SPLATCRAFT_NS_TRAIN",
         &["ns-train"],
-        "second trainer (gsplat, splatfacto)",
+        "second trainer (gsplat, splatfacto); not driven yet",
     ),
     (
         "colmap",
+        "SPLATCRAFT_COLMAP",
         &["colmap"],
         "structure from motion for video or image input",
     ),
-    ("ffmpeg", &["ffmpeg"], "video frame extraction"),
+    (
+        "ffmpeg",
+        "SPLATCRAFT_FFMPEG",
+        &["ffmpeg"],
+        "video frame extraction",
+    ),
     (
         "splat-transform",
+        "SPLATCRAFT_SPLAT_TRANSFORM",
         &["splat-transform"],
         "optional oracle and exporter (PlayCanvas)",
     ),
     (
         "bunx",
+        "SPLATCRAFT_BUNX",
         &["bunx"],
         "runs splat-transform without a global install",
     ),
 ];
 
-fn exts() -> Vec<String> {
-    if cfg!(windows) {
-        std::env::var("PATHEXT")
-            .unwrap_or_else(|_| ".EXE;.CMD;.BAT".into())
-            .split(';')
-            .map(|s| s.to_ascii_lowercase())
-            .filter(|s| !s.is_empty())
-            .collect()
-    } else {
-        vec![String::new()]
-    }
-}
-
-/// Find `name` in the directories of `path_var`.
-pub fn find_in(path_var: &std::ffi::OsStr, name: &str) -> Option<PathBuf> {
-    let exts = exts();
-    for dir in std::env::split_paths(path_var) {
-        for ext in &exts {
-            let candidate = dir.join(format!("{name}{ext}"));
-            if is_file(&candidate) {
-                return Some(candidate);
-            }
-        }
-    }
-    None
-}
-
-fn is_file(p: &Path) -> bool {
-    std::fs::metadata(p).map(|m| m.is_file()).unwrap_or(false)
-}
-
 pub fn engine_status() -> Value {
-    let path_var = std::env::var_os("PATH").unwrap_or_default();
+    let tools = crate::train::tools_dir();
     let engines: Vec<Value> = ENGINES
         .iter()
-        .map(|(name, bins, purpose)| {
-            let found = bins.iter().find_map(|b| find_in(&path_var, b));
-            match found {
-                Some(p) => json!({"engine": name, "status": "up", "path": p.to_string_lossy(), "purpose": purpose}),
-                None => json!({"engine": name, "status": "down", "searched": bins, "purpose": purpose}),
-            }
+        .map(|(name, var, bins, purpose)| match locate(var, bins, tools.as_deref()) {
+            Some(p) => json!({"engine": name, "status": "up", "path": p.to_string_lossy(), "purpose": purpose}),
+            None => json!({"engine": name, "status": "down", "searched": bins, "override": var, "purpose": purpose}),
         })
         .collect();
     let up = engines.iter().filter(|e| e["status"] == "up").count();
@@ -84,7 +62,9 @@ pub fn engine_status() -> Value {
         "engines": engines,
         "up": up,
         "total": ENGINES.len(),
-        "note": "Probe only checks PATH. Nothing is executed or version-checked yet."
+        "tools_dir": tools.map(|t| t.to_string_lossy().into_owned()),
+        "note": "Probe only looks for the files. Nothing is executed or version-checked here; \
+                 `train action=plan` checks each tool's --help before a run."
     })
 }
 
@@ -92,25 +72,6 @@ pub fn engine_status() -> Value {
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used)]
     use super::*;
-
-    #[test]
-    fn empty_path_finds_nothing() {
-        assert!(find_in(std::ffi::OsStr::new(""), "ffmpeg").is_none());
-    }
-
-    #[test]
-    fn finds_a_file_in_a_dir() {
-        let d = tempfile::tempdir().unwrap();
-        let name = if cfg!(windows) {
-            "faketool.exe"
-        } else {
-            "faketool"
-        };
-        std::fs::write(d.path().join(name), b"x").unwrap();
-        let p = std::env::join_paths([d.path()]).unwrap();
-        assert!(find_in(&p, "faketool").is_some());
-        assert!(find_in(&p, "othertool").is_none());
-    }
 
     #[test]
     fn status_shape() {

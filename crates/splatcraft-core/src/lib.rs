@@ -13,7 +13,12 @@ pub mod error;
 pub mod ops;
 pub mod paths;
 pub mod render;
+pub mod train;
 pub mod worlds;
+
+/// Tests that change process environment variables take this lock.
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 pub use error::{error_json, Error, Result};
 pub use splat_formats::Splats;
@@ -42,6 +47,7 @@ pub const OPS: &[&str] = &[
     "merge",
     "render",
     "worlds",
+    "train",
 ];
 
 /// Run `op` with JSON `args`. The only function front ends need.
@@ -56,6 +62,7 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "merge" => edit::merge(args),
         "render" => render::render(args),
         "worlds" => worlds::worlds(args),
+        "train" => train::train(args),
         other => Err(Error::Invalid(format!(
             "unknown op '{other}' (known: {})",
             OPS.join(", ")

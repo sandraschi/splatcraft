@@ -4013,6 +4013,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "splat-train"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "splat-formats",
+ "tempfile",
+]
+
+[[package]]
 name = "splat-view"
 version = "0.1.0"
 dependencies = [
@@ -4050,6 +4059,7 @@ dependencies = [
  "serde_json",
  "splat-formats",
  "splat-ops",
+ "splat-train",
  "splat-view",
  "splat-worlds",
  "tempfile",

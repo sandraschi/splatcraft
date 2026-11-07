@@ -34,7 +34,7 @@ impl From<WorldsError> for Error {
     }
 }
 
-fn data_dir() -> Result<PathBuf> {
+pub(crate) fn data_dir() -> Result<PathBuf> {
     let raw = std::env::var("SPLATCRAFT_DATA")
         .ok()
         .filter(|s| !s.is_empty())
@@ -318,13 +318,11 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
     use super::*;
     use splat_worlds::client::fake::Fake;
-    use std::sync::Mutex;
-
-    // These tests mutate process environment; serialize them.
-    static ENV: Mutex<()> = Mutex::new(());
+    // These tests mutate process environment; they share one lock with the
+    // other core tests that do so.
 
     fn with_data<R>(cap: Option<&str>, f: impl FnOnce(&std::path::Path) -> R) -> R {
-        let _g = ENV
+        let _g = crate::ENV_LOCK
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let d = tempfile::tempdir().unwrap();
