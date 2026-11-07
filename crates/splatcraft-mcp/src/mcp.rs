@@ -80,6 +80,39 @@ pub fn tools_list() -> Value {
             }
         },
         {
+            "name": "splat_worlds",
+            "description": "World Labs Marble world generation with a spend guard. Needs WORLDLABS_API_KEY for everything except action=ledger and a dry-run generate. action: ledger (spend so far vs cap), credits (live balance, free), generate (DRY RUN unless confirm_spend=true; a marble-1.1 world costs about 1500 API credits; a cumulative cap, default 4500 via SPLATCRAFT_MARBLE_CAP, refuses further spend), status (operation_id, optional wait), fetch (download splats/mesh/pano by operation_id or world_id), list. API credits are separate from marble.worldlabs.ai web credits.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["ledger", "credits", "generate", "status", "fetch", "list"]},
+                    "kind": {"type": "string", "enum": ["text", "image", "video"], "default": "text"},
+                    "prompt": {"type": "string"},
+                    "url": {"type": "string", "description": "Public https URL of the image or video"},
+                    "file": {"type": "string", "description": "Local image or video to upload (100 MB max)"},
+                    "name": {"type": "string"},
+                    "model": {"type": "string", "enum": ["marble-1.1", "marble-1.1-plus"], "default": "marble-1.1"},
+                    "is_pano": {"type": "boolean"},
+                    "disable_recaption": {"type": "boolean"},
+                    "seed": {"type": "integer"},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                    "confirm_spend": {"type": "boolean", "default": false},
+                    "max_credits": {"type": "integer", "description": "Lowers the cap for this call; cannot raise it"},
+                    "operation_id": {"type": "string"},
+                    "world_id": {"type": "string"},
+                    "wait": {"type": "boolean", "default": false},
+                    "timeout_secs": {"type": "integer", "default": 600, "maximum": 3600},
+                    "interval_secs": {"type": "integer", "default": 15},
+                    "dest": {"type": "string", "description": "Directory for fetched assets"},
+                    "assets": {"type": "array", "items": {"type": "string", "enum": ["100k", "500k", "full", "mesh", "pano", "thumbnail"]}, "default": ["500k", "mesh"]},
+                    "overwrite": {"type": "boolean", "default": false},
+                    "page_size": {"type": "integer", "default": 10},
+                    "page_token": {"type": "string"}
+                },
+                "required": ["action"]
+            }
+        },
+        {
             "name": "splat_engine_status",
             "description": "Report which external engines (brush, ns-train, colmap, ffmpeg, splat-transform, bunx) are present on PATH. Honest up/down, no execution.",
             "inputSchema": {"type": "object", "properties": {}}
@@ -109,6 +142,7 @@ fn op_for(tool: &str) -> Option<&'static str> {
         "splat_edit" => Some("edit"),
         "splat_merge" => Some("merge"),
         "splat_render" => Some("render"),
+        "splat_worlds" => Some("worlds"),
         "splat_engine_status" => Some("engine_status"),
         "splat_synth" => Some("synth"),
         _ => None,
@@ -211,6 +245,7 @@ mod tests {
                 "splat_edit",
                 "splat_merge",
                 "splat_render",
+                "splat_worlds",
                 "splat_engine_status",
                 "splat_synth"
             ]

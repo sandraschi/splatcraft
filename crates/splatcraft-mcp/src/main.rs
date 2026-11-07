@@ -80,6 +80,13 @@ enum Cmd {
         #[arg(long)]
         overwrite: bool,
     },
+    /// Marble world generation. Takes the splat_worlds arguments as JSON
+    /// (inline or @file.json), e.g. '{"action":"ledger"}'. Generation is a
+    /// dry run unless it contains "confirm_spend":true.
+    Worlds {
+        #[arg(long)]
+        args: String,
+    },
     /// Write synthetic random splats (for tests and smoke runs).
     Synth {
         #[arg(long)]
@@ -180,6 +187,16 @@ fn main() {
             "merge",
             json!({"inputs": inputs, "output": output, "overwrite": overwrite}),
         ),
+        Cmd::Worlds { args } => match read_steps(&args) {
+            Ok(v) => run("worlds", v),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": format!("--args is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
+                );
+                1
+            }
+        },
         Cmd::Synth {
             path,
             count,
