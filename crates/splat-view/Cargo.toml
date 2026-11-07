@@ -1,0 +1,17 @@
+[package]
+name = "splat-view"
+description = "Headless GPU rendering of Gaussian splats (wgpu-3dgs-viewer) to RGBA and PNG"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+splat-formats = { path = "../splat-formats" }
+wgpu-3dgs-viewer = "0.8"
+wgpu = "30"
+pollster = "0.4"
+png = "0.17"
+
+[lints]
+workspace = true
