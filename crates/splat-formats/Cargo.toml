@@ -1,0 +1,13 @@
+[package]
+name = "splat-formats"
+description = "Gaussian splat file formats for splatcraft: PLY and SPZ (v2/v3) read/write, stats, synthetic data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+flate2 = { workspace = true }
+
+[lints]
+workspace = true
