@@ -42,6 +42,44 @@ enum Cmd {
         #[arg(long)]
         overwrite: bool,
     },
+    /// Edit with a JSON step list, e.g. '[{"op":"crop","min":[-1,-1,-1],"max":[1,1,1]}]'.
+    Edit {
+        #[arg(long)]
+        input: String,
+        #[arg(long)]
+        output: String,
+        /// JSON array of steps (see the splat_edit tool description).
+        #[arg(long)]
+        steps: String,
+        #[arg(long)]
+        overwrite: bool,
+    },
+    /// Render a PNG still on the GPU.
+    Render {
+        #[arg(long)]
+        input: String,
+        #[arg(long)]
+        output: String,
+        #[arg(long, default_value_t = 960)]
+        width: u32,
+        #[arg(long, default_value_t = 540)]
+        height: u32,
+        #[arg(long, default_value_t = 0.0)]
+        yaw_deg: f64,
+        #[arg(long, default_value_t = 0.0)]
+        pitch_deg: f64,
+        #[arg(long)]
+        overwrite: bool,
+    },
+    /// Merge several splat files into one.
+    Merge {
+        #[arg(long, num_args = 2.., required = true)]
+        inputs: Vec<String>,
+        #[arg(long)]
+        output: String,
+        #[arg(long)]
+        overwrite: bool,
+    },
     /// Write synthetic random splats (for tests and smoke runs).
     Synth {
         #[arg(long)]
@@ -55,6 +93,18 @@ enum Cmd {
         #[arg(long)]
         overwrite: bool,
     },
+}
+
+/// `--steps` is inline JSON, or `@path` to read JSON from a file (avoids shell
+/// quoting problems, notably PowerShell stripping inner double quotes).
+fn read_steps(arg: &str) -> Result<Value, String> {
+    let text = match arg.strip_prefix('@') {
+        Some(path) => {
+            std::fs::read_to_string(path).map_err(|e| format!("cannot read {path}: {e}"))?
+        }
+        None => arg.to_string(),
+    };
+    serde_json::from_str::<Value>(&text).map_err(|e| e.to_string())
 }
 
 fn run(op: &str, args: Value) -> i32 {
@@ -90,6 +140,45 @@ fn main() {
         } => run(
             "convert",
             json!({"input": input, "output": output, "overwrite": overwrite}),
+        ),
+        Cmd::Edit {
+            input,
+            output,
+            steps,
+            overwrite,
+        } => match read_steps(&steps) {
+            Ok(steps) => run(
+                "edit",
+                json!({"input": input, "output": output, "steps": steps, "overwrite": overwrite}),
+            ),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": format!("--steps is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
+                );
+                1
+            }
+        },
+        Cmd::Render {
+            input,
+            output,
+            width,
+            height,
+            yaw_deg,
+            pitch_deg,
+            overwrite,
+        } => run(
+            "render",
+            json!({"input": input, "output": output, "width": width, "height": height,
+                   "yaw_deg": yaw_deg, "pitch_deg": pitch_deg, "overwrite": overwrite}),
+        ),
+        Cmd::Merge {
+            inputs,
+            output,
+            overwrite,
+        } => run(
+            "merge",
+            json!({"inputs": inputs, "output": output, "overwrite": overwrite}),
         ),
         Cmd::Synth {
             path,

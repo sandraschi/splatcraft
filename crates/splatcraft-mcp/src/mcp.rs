@@ -33,6 +33,53 @@ pub fn tools_list() -> Value {
             }
         },
         {
+            "name": "splat_edit",
+            "description": "Edit a splat file with an ordered pipeline of steps, written to a new file. Edits run in RDF (x right, y down, z front). Steps: {op:'crop',min:[x,y,z],max:[x,y,z],invert?}, {op:'prune',min_opacity?(0..1),max_scale?,drop_non_finite?}, {op:'transform',translate?:[x,y,z],scale?,rotate?:{axis:[x,y,z],degrees}}, {op:'reduce_sh',degree:0..3}. Rotation of splats with SH degree > 0 is refused (SH rotation not built); reduce_sh to 0 first.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "input": {"type": "string"},
+                    "output": {"type": "string"},
+                    "overwrite": {"type": "boolean", "default": false},
+                    "steps": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "object", "properties": {"op": {"type": "string", "enum": ["crop", "prune", "transform", "reduce_sh"]}}, "required": ["op"]}}
+                },
+                "required": ["input", "output", "steps"]
+            }
+        },
+        {
+            "name": "splat_merge",
+            "description": "Merge 2 to 64 splat files (.ply or .spz, mixed allowed) into one. If SH degrees differ, all are reduced to the lowest. Output is in the format of the output extension.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "inputs": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 64},
+                    "output": {"type": "string"},
+                    "overwrite": {"type": "boolean", "default": false}
+                },
+                "required": ["inputs", "output"]
+            }
+        },
+        {
+            "name": "splat_render",
+            "description": "Render a still PNG of a splat file on the GPU (auto-framed orbit camera). Background is opaque black. Returns the output path and covered_fraction, not the image. Fails with 'unsupported' when no GPU adapter exists.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "input": {"type": "string"},
+                    "output": {"type": "string", "description": "Must end in .png"},
+                    "width": {"type": "integer", "minimum": 16, "maximum": 4096, "default": 960},
+                    "height": {"type": "integer", "minimum": 16, "maximum": 4096, "default": 540},
+                    "yaw_deg": {"type": "number", "default": 0},
+                    "pitch_deg": {"type": "number", "default": 0},
+                    "fov_deg": {"type": "number", "default": 60},
+                    "distance_scale": {"type": "number", "default": 1},
+                    "gaussian_scale": {"type": "number", "default": 1},
+                    "overwrite": {"type": "boolean", "default": false}
+                },
+                "required": ["input", "output"]
+            }
+        },
+        {
             "name": "splat_engine_status",
             "description": "Report which external engines (brush, ns-train, colmap, ffmpeg, splat-transform, bunx) are present on PATH. Honest up/down, no execution.",
             "inputSchema": {"type": "object", "properties": {}}
@@ -59,6 +106,9 @@ fn op_for(tool: &str) -> Option<&'static str> {
     match tool {
         "splat_inspect" => Some("inspect"),
         "splat_convert" => Some("convert"),
+        "splat_edit" => Some("edit"),
+        "splat_merge" => Some("merge"),
+        "splat_render" => Some("render"),
         "splat_engine_status" => Some("engine_status"),
         "splat_synth" => Some("synth"),
         _ => None,
@@ -158,6 +208,9 @@ mod tests {
             [
                 "splat_inspect",
                 "splat_convert",
+                "splat_edit",
+                "splat_merge",
+                "splat_render",
                 "splat_engine_status",
                 "splat_synth"
             ]
@@ -192,5 +245,11 @@ mod tests {
         assert_eq!(v["splats"]["count"], 50);
         let r = call_tool("splat_inspect", &json!({"path": "does/not/exist.ply"}));
         assert_eq!(r["isError"], true);
+        let out = d.path().join("e.ply").to_string_lossy().into_owned();
+        let r = call_tool(
+            "splat_edit",
+            &json!({"input": p, "output": out, "steps": [{"op": "prune", "min_opacity": 0.5}]}),
+        );
+        assert_eq!(r["isError"], false);
     }
 }
