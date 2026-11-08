@@ -66,6 +66,10 @@ in gamecraft and must not recur).
 - Housekeeping: `git fetch --prune`; delete merged branches with `git branch -d` (no `-D`
   without the owner's say-so) and `git push origin --delete <name>`.
 
+## Install requests
+
+If asked to install splatcraft (for example "install splatcraft from github.com/sandraschi/splatcraft"), follow the "Agent install steps" in INSTALL.md exactly. Keep INSTALL.md in step with the release script and README whenever install paths, env vars or artifacts change.
+
 ## Lineage
 
 Replaces the earlier Python splatcraft (removed, nothing reused). Absorbs over time the

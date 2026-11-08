@@ -2,6 +2,23 @@
 
 Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.
 
+## Install
+
+**Easiest: tell Claude.** In Claude Code (or any coding agent with a shell) say:
+
+> Install splatcraft from github.com/sandraschi/splatcraft
+
+The agent follows the "Agent install steps" in [INSTALL.md](INSTALL.md): it checks for a
+release, otherwise builds from source with Rust, registers the MCP server, and verifies it.
+It asks before installing anything large. Until the first GitHub release exists, this means a
+source build (needs the Rust toolchain).
+
+Other ways, all detailed in [INSTALL.md](INSTALL.md): prebuilt zip, MCPB bundle for Claude
+Desktop, build from source, manual MCP config. mcpb is not Python-only; its manifest supports
+`binary` servers and splatcraft's bundle wraps the Rust `splatcraft-cli.exe` (validated and
+packed, not yet install-tested in Claude Desktop). Training additionally needs ffmpeg, COLMAP
+and Brush, which are not bundled.
+
 **Status: Day 4 code complete, first real training run pending.** What works today, and
 nothing else is claimed:
 

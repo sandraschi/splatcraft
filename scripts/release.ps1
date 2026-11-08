@@ -101,7 +101,7 @@ $base = "$RepoName-v$Version-windows-x64"
 $stage = Join-Path $Dist $base
 New-Item -ItemType Directory -Force $stage | Out-Null
 Copy-Item $app, $cli $stage
-foreach ($f in 'README.md', 'LICENSE-MIT', 'LICENSE-APACHE', 'CHANGELOG_LATEST.md') { Copy-Item (Join-Path $RepoRoot $f) $stage }
+foreach ($f in 'README.md', 'INSTALL.md', 'LICENSE-MIT', 'LICENSE-APACHE', 'CHANGELOG_LATEST.md') { Copy-Item (Join-Path $RepoRoot $f) $stage }
 $zip = Join-Path $Dist "$base.zip"
 Compress-Archive -Path $stage -DestinationPath $zip
 Write-Ok "zip: $([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB"
