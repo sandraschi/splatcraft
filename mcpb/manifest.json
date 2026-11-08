@@ -1,0 +1,38 @@
+{
+  "manifest_version": "0.2",
+  "name": "splatcraft",
+  "display_name": "splatcraft",
+  "version": "__VERSION__",
+  "description": "Pure-Rust Gaussian splat toolkit: inspect, convert, edit, merge, render, Marble world generation and video-to-splat training.",
+  "author": {
+    "name": "Sandra Schipal",
+    "url": "https://github.com/sandraschi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandraschi/splatcraft"
+  },
+  "license": "MIT OR Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "splatcraft-cli.exe",
+    "mcp_config": {
+      "command": "${__dirname}/splatcraft-cli.exe",
+      "args": ["mcp"]
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32"]
+  },
+  "tools": [
+    { "name": "splat_inspect", "description": "Count, bounds, SH degree and stats of a PLY or SPZ splat file." },
+    { "name": "splat_convert", "description": "Convert between PLY and SPZ." },
+    { "name": "splat_edit", "description": "Ordered crop, prune, transform and reduce_sh pipeline." },
+    { "name": "splat_merge", "description": "Merge 2 to 64 splat files." },
+    { "name": "splat_render", "description": "Headless GPU PNG render of a splat file." },
+    { "name": "splat_worlds", "description": "World Labs Marble client with a spend ledger; generate is a dry run unless confirmed." },
+    { "name": "splat_train", "description": "Video, images or COLMAP dataset to splat via ffmpeg, COLMAP and Brush." },
+    { "name": "splat_engine_status", "description": "Report which external engines are available." },
+    { "name": "splat_synth", "description": "Generate labelled synthetic splat data for testing." }
+  ]
+}
