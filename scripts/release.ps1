@@ -64,7 +64,12 @@ if (git tag --list $Tag) { Fail "tag $Tag already exists locally; bump the works
 if ($Publish) {
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { Fail 'gh CLI not found' }
     if (git ls-remote --tags origin "refs/tags/$Tag") { Fail "tag $Tag already exists on the remote" }
-    git fetch origin master 2>&1 | Out-Null
+    # git writes progress to stderr; under Windows PowerShell 5.1 with EAP=Stop a 2>&1 redirect
+    # turns that into a terminating error, so relax EAP for this call and check the exit code.
+    $prevEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    git fetch -q origin master 2>$null; $fetchCode = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    Need $fetchCode 'git fetch origin master'
     $ahead = git rev-list --count 'origin/master..HEAD'
     if ($ahead -ne '0') { Fail "$ahead local commit(s) not pushed; push master first" }
 }
