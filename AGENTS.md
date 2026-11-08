@@ -17,11 +17,13 @@ so tools that write files must emit LF. After bulk writes, check:
 | `splat-ops` | lib | Pure edit ops: crop, prune, transform, merge, reduce_sh |
 | `splat-view` | lib | `LiveScene` (GPU upload, camera, compute, draw) via wgpu-3dgs-viewer 0.8 (wgpu 30, same as egui-wgpu 0.37); headless `render` and the egui viewport both use it |
 | `splat-worlds` | lib | Marble API client behind a `Transport` trait, JSONL spend ledger, credit cap (reqwest blocking, rustls) |
+| `splat-train` | lib | Tool locator, `Probe` trait (reads `--help`), pure stage planner, job store, detached supervisor |
 | `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
-| `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio |
+| `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio; hidden `job-run` supervisor entry |
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
 
 CLI, MCP and app share `dispatch`. Never put logic in a front end.
+Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train.
 
 ## Rules
 
@@ -41,10 +43,28 @@ CLI, MCP and app share `dispatch`. Never put logic in a front end.
 `just fmt-check`, `just check` (clippy `-D warnings`), `just test`, `just build-release`,
 then `splatcraft --smoke`. `just ci` runs the first three.
 
-## Git
+## Git and branch hygiene
 
-Work on the existing branch. Do not create branches for routine work. One commit per
-crate or concern, small. Do not push without being asked.
+Single trunk: `master`. This repo must never grow a pile of agent branches (that happened
+in gamecraft and must not recur).
+
+- Work directly on `master`. Do not create branches, worktrees or stashes for routine work.
+  One commit per crate or concern, small, gates green.
+- If parallel agents are genuinely needed: one short-lived branch per agent, named
+  `agent/<task>`, created from current `master`, rebased onto `master`, merged (fast-forward
+  or squash) and deleted locally and on the remote the same day. Never leave one overnight
+  without telling the owner. Agents never share a branch.
+- No WIP commits left behind. Either finish and commit with green gates, or discard
+  (`git restore`), or tell the owner exactly what is unfinished. No `wip/`, `tmp/`, `backup/`
+  or `old/` branches, no tags as bookmarks, no `git stash` as storage.
+- Start of every session: `git status --short`, `git branch -a`, `git stash list`,
+  `git worktree list`, and `git log origin/master..HEAD --oneline`. If anything other than
+  clean `master` shows up, report it before starting new work.
+- End of every session: working tree clean, only `master` exists (local and remote), no
+  stashes. Report the count of commits not yet pushed.
+- Do not push without being asked. Never force-push `master`.
+- Housekeeping: `git fetch --prune`; delete merged branches with `git branch -d` (no `-D`
+  without the owner's say-so) and `git push origin --delete <name>`.
 
 ## Lineage
 
@@ -68,8 +88,19 @@ Apache-2.0/MIT `spz` crate source as reference only; no code copied.
   is true, and the ledger entry is written only after a successful POST. Never run a
   confirmed generate without the owner's explicit say-so. Never print or return the API
   key (`WORLDLABS_API_KEY`). Tests use the fake transport (`splat-worlds` feature `testing`),
-  never the network. Tests that touch `SPLATCRAFT_DATA` or the cap env serialize on a mutex.
+  never the network. Tests that touch `SPLATCRAFT_DATA` or the cap env serialize on a mutex
+  (`crate::ENV_LOCK` in core).
 - The viewport needs the adapter's real limits (`main.rs` overrides eframe's default device
   descriptor); with wgpu defaults, large scenes fail on the 128 MiB storage buffer limit.
   `LiveScene::encode_compute` must be recorded before the render pass that calls `draw`.
 - SPZ is lossy by design (8-bit colour, 24-bit fixed positions, quantised SH).
+- Training: tool flags are discovered from `--help` (`Probe`), never assumed. Brush v0.3.x
+  uses `--total-steps`, newer builds `--total-train-iters`. The supervisor runs no shell.
+  Tool lookup: env override (`SPLATCRAFT_<TOOL>`, wrong override means not found), PATH, then
+  `SPLATCRAFT_TOOLS`. Job state lives in `<data>/jobs/<id>/` (`job.json`, `log.txt`, `cancel`)
+  plus `<data>/jobs.jsonl`; heartbeat 5 s, stale after 45 s means `lost`. Tests that spawn
+  tools point the tool env vars at nonexistent files.
+- Downloaded engines live outside the repo (Goliath: `D:\Dev\tools\splatcraft`, set
+  `SPLATCRAFT_TOOLS`). Brush ships as `brush_app.exe`. Never commit binaries.
+- Generated or animated clips make poor COLMAP input; use steady orbit footage of a real
+  object. `check_sparse` fails with a hint when COLMAP finds no model.
