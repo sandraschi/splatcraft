@@ -4,7 +4,8 @@ Windows x64 is the only tested platform. Pick the path that fits; Option A needs
 
 ## Option A: tell Claude to install it (easiest)
 
-Open Claude Code, Claude Desktop with a shell/filesystem tool, or any coding agent and say:
+Open any agentic IDE or CLI (Claude Code, Cursor, Antigravity, Zed, VS Code with Copilot agent mode,
+Gemini CLI, Codex, OpenCode, Windsurf) and say:
 
 > Install splatcraft from github.com/sandraschi/splatcraft
 
@@ -46,29 +47,112 @@ Binaries land in `target\release\`. To build the zip and the `.mcpb` yourself:
 `pwsh -NoProfile -File scripts\release.ps1` (builds only; it never tags or uploads without
 `-Publish`).
 
-## Option E: register the MCP server by hand
+## Option E: register the MCP server by hand (any agentic IDE)
 
-Claude Code:
+Every host launches the same thing: `splatcraft-cli.exe` with the single argument `mcp`
+(MCP over stdio). Only the config file and its shape differ. In the examples, replace
+`C:/path/to/splatcraft-cli.exe` with the real absolute path (forward slashes work on Windows
+and avoid JSON escaping). `SPLATCRAFT_TOOLS` is optional and only matters for `train`.
+Restart or reload the host after editing, then check that the tools list shows
+`splat_inspect`, `splat_train` and the rest.
 
-```
-claude mcp add splatcraft -- C:\path\to\splatcraft-cli.exe mcp
-```
+| Host | Config file | Top-level key |
+|---|---|---|
+| Claude Code | managed by `claude mcp add` | n/a |
+| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` (or the `.mcpb`, Option C) | `mcpServers` |
+| Cursor | `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project) | `mcpServers` |
+| VS Code (Copilot agent mode) | `.vscode/mcp.json` (project) or the user `mcp.json` | `servers`, needs `"type": "stdio"` |
+| Zed | `settings.json` | `context_servers`, `command` is an object |
+| Antigravity (IDE, CLI, 2.0) | `~/.gemini/config/mcp_config.json` (global) or `.agents/mcp_config.json` (project) | `mcpServers` |
+| Gemini CLI | `~/.gemini/settings.json` or `.gemini/settings.json` | `mcpServers` |
+| Codex CLI / IDE extension | `~/.codex/config.toml` or `.codex/config.toml` | `[mcp_servers.<name>]` (TOML) |
+| OpenCode | `opencode.json` in the project, or `~/.config/opencode/opencode.json` | `mcp`, `command` is an array |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` (legacy Cascade; docs have moved, verify) | `mcpServers` |
 
-Claude Desktop, in `claude_desktop_config.json`:
+Hosts that follow the common `mcpServers` shape (Claude Desktop, Cursor, Antigravity, Gemini
+CLI, Windsurf, Cline and most others):
 
 ```json
 {
   "mcpServers": {
     "splatcraft": {
-      "command": "C:\\path\\to\\splatcraft-cli.exe",
+      "command": "C:/path/to/splatcraft-cli.exe",
       "args": ["mcp"],
-      "env": { "SPLATCRAFT_TOOLS": "C:\\path\\to\\tools" }
+      "env": { "SPLATCRAFT_TOOLS": "C:/path/to/tools" }
     }
   }
 }
 ```
 
-Restart Claude Desktop afterwards. `SPLATCRAFT_TOOLS` is only needed for training (below).
+Claude Code:
+
+```
+claude mcp add splatcraft -- C:/path/to/splatcraft-cli.exe mcp
+```
+
+VS Code (`servers`, explicit `type`):
+
+```json
+{
+  "servers": {
+    "splatcraft": {
+      "type": "stdio",
+      "command": "C:/path/to/splatcraft-cli.exe",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Zed (`context_servers`; `command` is an object with `path`, `args`, `env`; no `type` field):
+
+```json
+{
+  "context_servers": {
+    "splatcraft": {
+      "source": "custom",
+      "command": {
+        "path": "C:/path/to/splatcraft-cli.exe",
+        "args": ["mcp"],
+        "env": { "SPLATCRAFT_TOOLS": "C:/path/to/tools" }
+      }
+    }
+  }
+}
+```
+
+Codex CLI (`codex mcp add splatcraft -- C:/path/to/splatcraft-cli.exe mcp` also works):
+
+```toml
+[mcp_servers.splatcraft]
+command = "C:/path/to/splatcraft-cli.exe"
+args = ["mcp"]
+env = { SPLATCRAFT_TOOLS = "C:/path/to/tools" }
+```
+
+OpenCode (`mcp` key, `type: "local"`, `command` is one array, env key is `environment`):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "splatcraft": {
+      "type": "local",
+      "command": ["C:/path/to/splatcraft-cli.exe", "mcp"],
+      "enabled": true,
+      "environment": { "SPLATCRAFT_TOOLS": "C:/path/to/tools" }
+    }
+  }
+}
+```
+
+Notes: these formats were taken from each tool's current documentation, but hosts change
+them often. If a host rejects the entry, read that host's own MCP docs rather than guessing,
+and tell the owner. Antigravity docs currently give the global file as
+`~/.gemini/config/mcp_config.json`; older setups used a folder under `~/.gemini/antigravity`,
+so edit whichever file the host actually loads (its MCP manager can open the raw config).
+Project-scoped configs (`.cursor`, `.vscode`, `.agents`, `.codex`, `opencode.json`) may need
+approval or a trusted workspace before they load.
 
 ## External engines (only for `train`)
 
@@ -101,9 +185,11 @@ and do not improvise around errors.
    and install it with rustup only after they agree. MSVC build tools are required on Windows.
 4. `git clone https://github.com/sandraschi/splatcraft <dir>`, then in that directory
    `cargo build --release --workspace`. A first build takes a few minutes.
-5. Register the MCP server (Option E) using the absolute path to `splatcraft-cli.exe`.
-   Prefer `claude mcp add` in Claude Code; for Claude Desktop edit the config JSON, keep any
-   existing servers, and tell the user to restart Desktop.
+5. Register the MCP server using the absolute path to `splatcraft-cli.exe` and the host you
+   are running in (Option E has the exact file and shape for Claude Code, Claude Desktop,
+   Cursor, VS Code, Zed, Antigravity, Gemini CLI, Codex CLI, OpenCode and Windsurf). Use your own
+   host's native mechanism, keep any existing servers in the file, and tell the user to
+   restart or reload the host. If you are not sure which host you are in, ask.
 6. If the user wants training: download COLMAP and Brush from the release pages above, verify
    checksums where the project publishes them, unpack into a tools directory, and set
    `SPLATCRAFT_TOOLS`. Do not put them on PATH.
