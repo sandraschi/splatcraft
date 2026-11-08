@@ -12,6 +12,9 @@ Windows x64 only for now.
 - `train`: video, image folder or COLMAP dataset to splat through ffmpeg, COLMAP and Brush, run
   by a detached supervisor with a job ledger, cancel and timeouts.
 - MCP stdio server, CLI and an egui desktop app with a live orbit viewport.
+- API keys (World Labs) read from an env var or the Windows Credential Manager via the
+  `craft-secrets` crate. `splatcraft-cli secret set worlds` stores a key with hidden input,
+  `secret status` reports where it comes from. The key is never returned or logged.
 
 ## Known limits (read before relying on it)
 
