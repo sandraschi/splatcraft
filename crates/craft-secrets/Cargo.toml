@@ -1,0 +1,13 @@
+[package]
+name = "craft-secrets"
+description = "Secret lookup for craft apps: environment variable first, then the OS credential store. Lift-and-share crate, no splatcraft dependencies."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+keyring = "4.2"
+
+[lints]
+workspace = true

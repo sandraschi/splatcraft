@@ -81,7 +81,7 @@ pub fn tools_list() -> Value {
         },
         {
             "name": "splat_worlds",
-            "description": "World Labs Marble world generation with a spend guard. Needs WORLDLABS_API_KEY for everything except action=ledger and a dry-run generate. action: ledger (spend so far vs cap), credits (live balance, free), generate (DRY RUN unless confirm_spend=true; a marble-1.1 world costs about 1500 API credits; a cumulative cap, default 4500 via SPLATCRAFT_MARBLE_CAP, refuses further spend), status (operation_id, optional wait), fetch (download splats/mesh/pano by operation_id or world_id), list. API credits are separate from marble.worldlabs.ai web credits.",
+            "description": "World Labs Marble world generation with a spend guard. Needs a World Labs API key (env WORLDLABS_API_KEY, or stored with `splatcraft-cli secret set worlds`) for everything except action=ledger and a dry-run generate. action: ledger (spend so far vs cap), credits (live balance, free), generate (DRY RUN unless confirm_spend=true; a marble-1.1 world costs about 1500 API credits; a cumulative cap, default 4500 via SPLATCRAFT_MARBLE_CAP, refuses further spend), status (operation_id, optional wait), fetch (download splats/mesh/pano by operation_id or world_id), list. API credits are separate from marble.worldlabs.ai web credits.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

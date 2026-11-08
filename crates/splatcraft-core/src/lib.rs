@@ -13,6 +13,7 @@ pub mod error;
 pub mod ops;
 pub mod paths;
 pub mod render;
+pub mod secrets;
 pub mod train;
 pub mod worlds;
 

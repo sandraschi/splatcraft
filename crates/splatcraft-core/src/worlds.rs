@@ -63,7 +63,9 @@ fn flag(args: &Value, key: &str) -> bool {
 
 /// Entry point used by the dispatch bus (real network).
 pub fn worlds(args: &Value) -> Result<Value> {
-    run(args, || Ok(HttpTransport::from_env()?))
+    run(args, || {
+        Ok(HttpTransport::with_key(crate::secrets::worlds_key()?)?)
+    })
 }
 
 /// Testable core: `make` builds the transport only when a call needs one.

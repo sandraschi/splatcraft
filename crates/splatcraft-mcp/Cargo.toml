@@ -14,6 +14,7 @@ path = "src/main.rs"
 splatcraft-core = { path = "../splatcraft-core" }
 serde_json = { workspace = true }
 clap = { workspace = true }
+rpassword = "7"
 
 [dev-dependencies]
 tempfile = { workspace = true }

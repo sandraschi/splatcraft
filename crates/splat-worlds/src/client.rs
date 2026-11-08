@@ -63,6 +63,14 @@ impl HttpTransport {
         if key.trim().is_empty() {
             return Err(WorldsError::Auth(format!("{KEY_ENV} is not set")));
         }
+        HttpTransport::with_key(key)
+    }
+
+    /// Build a transport from a key the caller already resolved (environment or credential store).
+    pub fn with_key(key: String) -> Result<HttpTransport> {
+        if key.trim().is_empty() {
+            return Err(WorldsError::Auth("the API key is empty".into()));
+        }
         let http = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(120))
             .build()

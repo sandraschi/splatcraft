@@ -12,6 +12,7 @@ splat-ops = { path = "../splat-ops" }
 splat-view = { path = "../splat-view" }
 splat-worlds = { path = "../splat-worlds" }
 splat-train = { path = "../splat-train" }
+craft-secrets = { path = "../craft-secrets" }
 serde_json = { workspace = true }
 
 [dev-dependencies]

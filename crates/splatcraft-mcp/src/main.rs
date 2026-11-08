@@ -94,6 +94,11 @@ enum Cmd {
         #[arg(long)]
         args: String,
     },
+    /// Manage stored secrets (API keys). Typed by the owner; never exposed over MCP.
+    Secret {
+        #[command(subcommand)]
+        action: SecretCmd,
+    },
     /// Internal: run one queued job to the end (spawned by `train start`).
     #[command(name = "job-run", hide = true)]
     JobRun {
@@ -113,6 +118,70 @@ enum Cmd {
         #[arg(long)]
         overwrite: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum SecretCmd {
+    /// Show which secrets are set and where they come from. Never prints a value.
+    Status,
+    /// Store a secret in the OS credential store (Windows Credential Manager).
+    /// Prompts with hidden input unless --stdin is given.
+    Set {
+        /// Secret name, e.g. worlds.
+        name: String,
+        /// Read the value from one line of stdin instead of prompting.
+        #[arg(long)]
+        stdin: bool,
+    },
+    /// Remove a stored secret.
+    Delete { name: String },
+}
+
+fn read_secret_value(from_stdin: bool) -> Result<String, String> {
+    if from_stdin {
+        let mut line = String::new();
+        std::io::stdin()
+            .read_line(&mut line)
+            .map_err(|e| format!("cannot read stdin: {e}"))?;
+        Ok(line)
+    } else {
+        rpassword::prompt_password("Value (hidden, press Enter when done): ")
+            .map_err(|e| format!("cannot read the value: {e}"))
+    }
+}
+
+fn print_result(r: splatcraft_core::error::Result<Value>) -> i32 {
+    match r {
+        Ok(v) => {
+            println!("{}", serde_json::to_string_pretty(&v).unwrap_or_default());
+            0
+        }
+        Err(e) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&error_json(&e)).unwrap_or_default()
+            );
+            1
+        }
+    }
+}
+
+fn run_secret(action: SecretCmd) -> i32 {
+    use splatcraft_core::secrets;
+    match action {
+        SecretCmd::Status => print_result(secrets::status()),
+        SecretCmd::Delete { name } => print_result(secrets::delete(&name)),
+        SecretCmd::Set { name, stdin } => match read_secret_value(stdin) {
+            Ok(value) => print_result(secrets::set(&name, &value)),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": e, "error_type": "io"})
+                );
+                1
+            }
+        },
+    }
 }
 
 /// `--steps` is inline JSON, or `@path` to read JSON from a file (avoids shell
@@ -220,6 +289,7 @@ fn main() {
                 1
             }
         },
+        Cmd::Secret { action } => run_secret(action),
         Cmd::JobRun { dir } => match splatcraft_core::train::run_supervisor(&dir) {
             Ok(()) => 0,
             Err(e) => {
