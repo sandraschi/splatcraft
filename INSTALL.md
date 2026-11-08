@@ -170,6 +170,20 @@ Unzip COLMAP and Brush into subfolders of one tools directory (for example
 Per-tool overrides (`SPLATCRAFT_BRUSH`, `SPLATCRAFT_COLMAP`, `SPLATCRAFT_FFMPEG`) win over it.
 Check with `splatcraft-cli engines`. Nerfstudio is detected but unused.
 
+## API keys (only for `worlds`)
+
+Marble world generation needs a World Labs API key. Store it once, yourself, in the Windows
+Credential Manager:
+
+```
+splatcraft-cli secret set worlds
+```
+
+It prompts with hidden input, so the key never appears in a config file, a shell history or a
+chat. `splatcraft-cli secret status` shows whether it is set and from where (never the value).
+The environment variable `WORLDLABS_API_KEY` still overrides the stored key. Agents must not
+ask for the key or paste it anywhere; see docs/SECRETS_STANDARD.md.
+
 ## Agent install steps
 
 For an AI agent asked to install splatcraft. Follow in order, stop and report on any failure,
@@ -195,6 +209,7 @@ and do not improvise around errors.
    `SPLATCRAFT_TOOLS`. Do not put them on PATH.
 7. Verify: run `splatcraft-cli.exe status` and `splatcraft-cli.exe engines` and report which
    engines are up. Run `splatcraft.exe --smoke` if a GPU is expected.
-8. Do not set or ask for `WORLDLABS_API_KEY` unless the user supplies it. Never run
-   `worlds generate` with `confirm_spend` true; it costs real money.
+8. Never ask for, read or write a World Labs API key. If the user wants Marble, tell them to run
+   `splatcraft-cli secret set worlds` themselves. Never run `worlds generate` with
+   `confirm_spend` true; it costs real money.
 9. Report exactly what was installed, where, and what was not verified.

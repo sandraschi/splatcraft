@@ -17,6 +17,7 @@ so tools that write files must emit LF. After bulk writes, check:
 | `splat-ops` | lib | Pure edit ops: crop, prune, transform, merge, reduce_sh |
 | `splat-view` | lib | `LiveScene` (GPU upload, camera, compute, draw) via wgpu-3dgs-viewer 0.8 (wgpu 30, same as egui-wgpu 0.37); headless `render` and the egui viewport both use it |
 | `splat-worlds` | lib | Marble API client behind a `Transport` trait, JSONL spend ledger, credit cap (reqwest blocking, rustls) |
+| `craft-secrets` | lib | Env var first, then OS credential store (keyring). No splatcraft dependencies; shared pattern for craft apps, see docs/SECRETS_STANDARD.md |
 | `splat-train` | lib | Tool locator, `Probe` trait (reads `--help`), pure stage planner, job store, detached supervisor |
 | `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
 | `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio; hidden `job-run` supervisor entry |
@@ -35,6 +36,7 @@ Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds
 - Hostile input: validate sizes against real byte length before allocating.
 - No stubs presented as features. Unsupported formats return `unsupported` (SPZ v4 does today).
 - No mocks that hide missing behaviour. `synth` data is labelled synthetic.
+- Secrets: never read, print, log, store or ask for an API key value. No MCP tool or `dispatch` op may expose secrets; only `splatcraft-cli secret set|status|delete`, typed by the owner, may write them. If a key is needed, tell the owner to run `splatcraft-cli secret set worlds`.
 - No em dashes in docs, code or commit messages.
 - Realistic AI-assisted timelines (days, not weeks) in all docs.
 

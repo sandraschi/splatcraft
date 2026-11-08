@@ -54,7 +54,10 @@ confirmed submit (about 1500 API credits for `marble-1.1`) is appended to
 `marble-ledger.jsonl` in `SPLATCRAFT_DATA` (default `./data`, gitignored) only after the POST
 succeeds. A cumulative cap (`SPLATCRAFT_MARBLE_CAP`, default 4500) refuses further submits;
 a per-call `max_credits` can lower it but never raise it. The key comes from
-`WORLDLABS_API_KEY` and is never returned or logged. API credits are separate from the
+`WORLDLABS_API_KEY` or, if that is unset, from the Windows Credential Manager (store it with
+`splatcraft-cli secret set worlds`, which prompts with hidden input). `secret status` shows
+whether a key is set and where from, never the value. There is no MCP tool or bus op that can
+read or write secrets, and the key is never returned or logged. See docs/SECRETS_STANDARD.md. API credits are separate from the
 marble.worldlabs.ai web credits (check platform.worldlabs.ai).
 
 ## Training (`train`)
