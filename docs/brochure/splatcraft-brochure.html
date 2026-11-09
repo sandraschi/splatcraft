@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SplatCraft v0.1.0 — Technical Brochure &amp; Operator Handbook</title>
+  <meta name="author" content="Sandra Schipal" />
+  <style>
+    @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.55;
+      font-size: 10.2pt;
+      margin: 0;
+      padding: 0;
+    }
+    .cover {
+      background: linear-gradient(145deg, #090d16 0%, #0f172a 55%, #0c4a6e 100%);
+      color: #f8fafc;
+      padding: 44px 40px 48px 40px;
+      border-radius: 14px;
+      margin-bottom: 28px;
+      page-break-after: always;
+    }
+    .cover-kicker {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid #38bdf8;
+      color: #7dd3fc;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    .cover h1 {
+      font-size: 32pt;
+      line-height: 1.1;
+      margin: 0 0 12px 0;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .cover h2 {
+      font-size: 13.5pt;
+      font-weight: 400;
+      color: #bae6fd;
+      margin: 0 0 26px 0;
+    }
+    .cover-grid {
+      display: table;
+      width: 100%;
+      margin-top: 22px;
+      border-collapse: separate;
+      border-spacing: 10px;
+    }
+    .cover-stat {
+      display: table-cell;
+      width: 25%;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .cover-stat .num {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #38bdf8;
+      display: block;
+    }
+    .cover-stat .lbl {
+      font-size: 8pt;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cover-footer {
+      margin-top: 28px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.3);
+      font-size: 9pt;
+      color: #94a3b8;
+    }
+    h2.section-title {
+      font-size: 15pt;
+      color: #0c4a6e;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 5px;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    h3 {
+      font-size: 11.5pt;
+      color: #0f172a;
+      margin-top: 16px;
+      margin-bottom: 6px;
+    }
+    p { margin: 0 0 9px 0; }
+    ul { margin: 6px 0 12px 0; padding-left: 20px; }
+    li { margin-bottom: 4px; }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px 0;
+      font-size: 9pt;
+    }
+    table.data-table th {
+      background: #0f172a;
+      color: #f8fafc;
+      text-align: left;
+      padding: 6px 8px;
+      font-weight: 700;
+    }
+    table.data-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    table.data-table tr:nth-child(even) td { background: #f8fafc; }
+    code, pre {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 8.8pt;
+    }
+    code {
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 11px 14px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-kicker">ArtCraft Fleet Technical Brochure &middot; Series #5</div>
+    <h1>SplatCraft v0.1.0</h1>
+    <h2>Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.</h2>
+
+    <svg viewBox="0 0 760 165" width="100%" height="165" xmlns="http://www.w3.org/2000/svg" style="margin: 10px 0 16px 0;">
+      <rect x="2" y="2" width="756" height="161" rx="12" fill="#0b1322" stroke="#38bdf8" stroke-width="1.5"/>
+      <rect x="24" y="22" width="200" height="120" rx="8" fill="#1e293b" stroke="#67e8f9" stroke-width="1.5"/>
+      <text x="124" y="52" fill="#67e8f9" font-size="13" font-weight="bold" text-anchor="middle">L3: splatcraft-app</text>
+      <text x="124" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">Native eframe/egui Studio</text>
+      <text x="124" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">In-Process Core Dispatch</text>
+      <text x="124" y="118" fill="#34d399" font-size="9.5" text-anchor="middle">Zero HTTP / Port Overhead</text>
+
+      <rect x="280" y="22" width="200" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="380" y="52" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">L2: splatcraft-mcp</text>
+      <text x="380" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">CLI + Stdio MCP 2024-11-05</text>
+      <text x="380" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">Human Verbs &amp; Agent Tools</text>
+      <text x="380" y="118" fill="#34d399" font-size="9.5" text-anchor="middle">Deterministic JSON Output</text>
+
+      <rect x="536" y="22" width="200" height="120" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+      <text x="636" y="52" fill="#34d399" font-size="13" font-weight="bold" text-anchor="middle">L1: splatcraft-core</text>
+      <text x="636" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">Single dispatch() Engine</text>
+      <text x="636" y="98" fill="#fcd34d" font-size="9.5" text-anchor="middle">deny(unwrap/expect/panic)</text>
+      <text x="636" y="118" fill="#94a3b8" font-size="9.5" text-anchor="middle">Pre-Write Backups &amp; Guards</text>
+
+      <line x1="224" y1="82" x2="280" y2="82" stroke="#38bdf8" stroke-width="2"/>
+      <line x1="480" y1="82" x2="536" y2="82" stroke="#10b981" stroke-width="2"/>
+    </svg>
+
+    <div class="cover-grid">
+      <div class="cover-stat">
+        <span class="num">v0.1.0</span>
+        <span class="lbl">Release Version</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">9 Crates</span>
+        <span class="lbl">Workspace Tiers</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">8530</span>
+        <span class="lbl">Pure-Rust LOC</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">6-Gate</span>
+        <span class="lbl">ArtCraft Verified</span>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <strong>Repository:</strong> <code>D:\Dev\repos\splatcraft</code> &middot;
+      <strong>Standard:</strong> <code>CRAFT_BROCHURE_STANDARD.md</code> &middot;
+      <strong>Compiled via:</strong> <code>BookCraft v0.5.0</code>
+    </div>
+  </div>
+
+  <p>Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.</p>
+<h2 class="section-title">Install</h2>
+<p><strong>Easiest: tell Claude.</strong> In Claude Code (or any coding agent with a shell) say:</p>
+<p>&gt; Install splatcraft from github.com/sandraschi/splatcraft</p>
+<p>The agent follows the &quot;Agent install steps&quot; in INSTALL.md: it checks for a</p>
+<p>release, otherwise builds from source with Rust, registers the MCP server, and verifies it.</p>
+<p>It asks before installing anything large. Until the first GitHub release exists, this means a</p>
+<p>source build (needs the Rust toolchain).</p>
+<p>Other ways, all detailed in INSTALL.md: prebuilt zip, MCPB bundle for Claude</p>
+<p>Desktop, build from source, manual MCP config. mcpb is not Python-only; its manifest supports</p>
+<p><code>binary</code> servers and splatcraft&#39;s bundle wraps the Rust <code>splatcraft-cli.exe</code> (validated and</p>
+<p>packed, not yet install-tested in Claude Desktop). Training additionally needs ffmpeg, COLMAP</p>
+<p>and Brush, which are not bundled.</p>
+<p><strong>Status: Day 4 code complete, first real training run pending.</strong> What works today, and</p>
+<p>nothing else is claimed:</p>
+<ul>
+<li>Read and write binary PLY (3DGS layout, SH degree 0 to 3).</li>
+<li>Read SPZ v2 and v3, write SPZ v3. SPZ v4 (zstd) is rejected with a clear error.</li>
+<li><code>inspect</code>: count, bounding box, SH degree, opacity and scale stats, non-finite count.</li>
+<li><code>convert</code>: PLY &lt;-&gt; SPZ, atomic write, no overwrite unless asked.</li>
+<li><code>engine_status</code>: honest up/down for brush, ns-train, colmap, ffmpeg, splat-transform, bunx.</li>
+</ul>
+<p>Looks at env overrides, PATH and the tools dir; nothing is executed or version-checked.</p>
+<ul>
+<li><code>edit</code>: ordered step pipeline: <code>crop</code> (box, optional invert), <code>prune</code> (min opacity, max scale,</li>
+</ul>
+<p>non-finite), <code>transform</code> (translate, uniform scale, axis-angle rotation), <code>reduce_sh</code>.</p>
+<p>Edits run in RDF. Rotating splats that carry SH degree &gt; 0 is refused, because SH rotation</p>
+<p>is not built; run <code>reduce_sh</code> to degree 0 first.</p>
+<ul>
+<li><code>merge</code>: 2 to 64 files, mixed PLY/SPZ, frames unified, SH reduced to the lowest degree.</li>
+<li><code>render</code>: headless GPU PNG still (wgpu-3dgs-viewer, auto-framed orbit camera, opaque black</li>
+</ul>
+<p>background). Reports <code>unsupported</code> when no GPU adapter exists.</p>
+<ul>
+<li><code>worlds</code>: World Labs Marble client (absorbs worldlabs-mcp): <code>ledger</code>, <code>credits</code>, <code>generate</code>,</li>
+</ul>
+<p><code>status</code> (optional wait), <code>fetch</code> (SPZ splats, collider mesh, pano, thumbnail), <code>list</code>.</p>
+<p>Request shapes follow the working Python bridge. Tested against a scripted fake transport</p>
+<p>only: no live call has been made yet, and the file upload path (prepare_upload then PUT) is</p>
+<p>untested against the real service.</p>
+<ul>
+<li><code>train</code>: video, image folder or COLMAP dataset to splat (absorbs splatmaker-mcp). Actions</li>
+</ul>
+<p><code>plan</code> (dry run, shows every stage), <code>start</code>, <code>status</code>, <code>log</code>, <code>cancel</code>, <code>list</code>. Details below.</p>
+<ul>
+<li>Live viewport in the egui app: type a path, press Load, drag to orbit, wheel to zoom,</li>
+</ul>
+<p>double-click to reset. It draws through an egui-wgpu paint callback using the same</p>
+<p><code>LiveScene</code> code as the headless <code>render</code>. Verified so far: it compiles, the app starts on</p>
+<p>the wgpu backend, and the shared scene path passes the GPU render test. Mouse feel (drag</p>
+<p>direction, zoom speed) and colour on the window surface have not been judged by eye yet.</p>
+<ul>
+<li>MCP stdio server and CLI over one dispatch bus; egui host with <code>--smoke</code>.</li>
+</ul>
+<p>Spend guard for <code>worlds</code>: <code>generate</code> is a dry run unless <code>confirm_spend</code> is true. Each</p>
+<p>confirmed submit (about 1500 API credits for <code>marble-1.1</code>) is appended to</p>
+<p><code>marble-ledger.jsonl</code> in <code>SPLATCRAFT_DATA</code> (default <code>./data</code>, gitignored) only after the POST</p>
+<p>succeeds. A cumulative cap (<code>SPLATCRAFT_MARBLE_CAP</code>, default 4500) refuses further submits;</p>
+<p>a per-call <code>max_credits</code> can lower it but never raise it. The key comes from</p>
+<p><code>WORLDLABS_API_KEY</code> or, if that is unset, from the Windows Credential Manager (store it with</p>
+<p><code>splatcraft-cli secret set worlds</code>, which prompts with hidden input). <code>secret status</code> shows</p>
+<p>whether a key is set and where from, never the value. There is no MCP tool or bus op that can</p>
+<p>read or write secrets, and the key is never returned or logged. See docs/SECRETS_STANDARD.md. API credits are separate from the</p>
+<p>marble.worldlabs.ai web credits (check platform.worldlabs.ai).</p>
+<h2 class="section-title">Training (<code>train</code>)</h2>
+<p>The Rust code plans, launches and supervises; the heavy work is done by external programs:</p>
+<p>ffmpeg (frame extraction), COLMAP (structure from motion) and Brush (the trainer, Rust).</p>
+<p>Nerfstudio (Python) and splat-transform (via bunx) are only detected, never required.</p>
+<ul>
+<li>Inputs: exactly one of <code>video</code>, <code>images_dir</code>, <code>dataset</code>. Plus <code>output</code> (.ply or .spz),</li>
+</ul>
+<p><code>name</code>, <code>overwrite</code>, <code>target_frames</code> (150), <code>max_resolution</code> (1600), <code>iters</code> (10000),</p>
+<p><code>max_splats</code> (2000000), <code>sh_degree</code> (3), <code>quality</code> (&quot;medium&quot;).</p>
+<ul>
+<li>Flags are discovered from each tool&#39;s <code>--help</code> and only seen flags are emitted, so Brush</li>
+</ul>
+<p>builds with <code>--total-steps</code> (v0.3.x) and newer ones with <code>--total-train-iters</code> both plan.</p>
+<ul>
+<li><code>start</code> spawns a detached supervisor (<code>splatcraft-cli job-run</code>) that runs the stages with no</li>
+</ul>
+<p>shell, per-stage timeouts, a heartbeat every 5 s and a cancel marker. Jobs survive the</p>
+<p>caller exiting. A job whose heartbeat is stale for 45 s reports <code>lost</code>; one still queued</p>
+<p>after 60 s reports <code>not_started</code>.</p>
+<ul>
+<li>Layout: <code>&lt;data&gt;/jobs/&lt;id&gt;/{job.json,log.txt,cancel}</code>, event log <code>&lt;data&gt;/jobs.jsonl</code>, work</li>
+</ul>
+<p>dirs <code>&lt;data&gt;/work/&lt;name&gt;-&lt;unix&gt;</code>.</p>
+<ul>
+<li>Status: planning, process control, timeout kill and cancel are tested with real processes.</li>
+</ul>
+<p>No real video-to-splat run has completed yet. Plan against real Brush v0.3.0 and COLMAP</p>
+<p>4.2.1 resolves correctly. Orbit footage of a real object is needed; generated or animated</p>
+<p>clips will most likely fail at the COLMAP sparse-model check. Brush wants VRAM headroom.</p>
+<p>Where the tools are found (first hit wins): env override <code>SPLATCRAFT_BRUSH</code>, <code>_NS_TRAIN</code>,</p>
+<p><code>_COLMAP</code>, <code>_FFMPEG</code>, <code>_FFPROBE</code>, <code>_SPLAT_TRANSFORM</code>, <code>_BUNX</code> (a set but wrong override means</p>
+<p>&quot;not found&quot;, no fallback), then PATH, then the tools dir <code>SPLATCRAFT_TOOLS</code> (default</p>
+<p><code>./tools</code>; <code>&lt;tool&gt;/bin</code> then <code>&lt;tool&gt;</code>). <code>SPLATCRAFT_CLI</code> overrides the supervisor binary.</p>
+<p>Not built yet: collision mesh generation of our own, texturecraft recolor of monochrome</p>
+<p>splats, SH rotation. See the plan below.</p>
+<h2 class="section-title">Use</h2>
+<pre>
+just ci                                   # fmt, clippy, tests
+cargo run -p splatcraft-mcp -- inspect --path scene.ply
+cargo run -p splatcraft-mcp -- convert --input scene.ply --output scene.spz
+cargo run -p splatcraft-mcp -- engines
+cargo run -p splatcraft-mcp -- edit --input a.ply --output b.spz --steps &quot;@steps.json&quot;
+cargo run -p splatcraft-mcp -- merge --inputs a.ply b.spz --output m.ply
+cargo run -p splatcraft-mcp -- render --input a.ply --output a.png --yaw-deg 30
+cargo run -p splatcraft-mcp -- worlds --args &quot;@dry.json&quot;   # {&quot;action&quot;:&quot;generate&quot;,&quot;prompt&quot;:&quot;...&quot;,&quot;...&quot;:&quot;...&quot;} is a dry run
+cargo run -p splatcraft-mcp -- train --args &quot;@plan.json&quot;   # {&quot;action&quot;:&quot;plan&quot;,&quot;video&quot;:&quot;clip.mp4&quot;,&quot;output&quot;:&quot;out.ply&quot;}
+cargo run -p splatcraft-mcp -- mcp        # MCP stdio server
+cargo run -p splatcraft --bin splatcraft  # desktop host
+</pre>
+<p><code>--steps</code> and <code>--args</code> take inline JSON or <code>@file.json</code> (use the file form in PowerShell,</p>
+<p>which strips inner double quotes).</p>
+<p>MCP tools: <code>splat_inspect</code>, <code>splat_convert</code>, <code>splat_edit</code>, <code>splat_merge</code>, <code>splat_render</code>,</p>
+<p><code>splat_worlds</code>, <code>splat_train</code>, <code>splat_engine_status</code>, <code>splat_synth</code>.</p>
+<p>Set <code>SPLATCRAFT_ROOT</code> to confine all paths to a directory.</p>
+<h2 class="section-title">Plan (AI-assisted days)</h2>
+<table class="data-table"><thead><tr>
+<th>Day</th>
+<th>Scope</th>
+</tr></thead><tbody>
+<tr>
+<td>1</td>
+<td>Workspace, PLY and SPZ codecs, inspect, convert, engine probe, gates (done)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Edit ops (crop, transform, merge, prune), headless render (done); live egui viewport (done, needs a look by eye)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Marble client (absorbs worldlabs-mcp), spend ledger (done, offline-tested; first live read-only check pending)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Brush trainer adapter, ffmpeg and COLMAP prep, job ledger (done, tested with real processes); first real video-to-splat run pending a proper orbit clip</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Collision mesh, texturecraft bridge spike</td>
+</tr>
+<tr>
+<td>6 to 7</td>
+<td>Recolor of grey splats, democraft recipes, installer</td>
+</tr>
+</tbody></table>
+<h2 class="section-title">License</h2>
+<p>MIT OR Apache-2.0.</p>
+
+  <div class="page-break"></div><h2 class="section-title">Product Requirements &amp; Architecture Specification</h2><p><strong>Repo:</strong> <code>splatcraft</code> (Pure-Rust ArtCraft pattern, 9 crates)</p>
+<p><strong>Version:</strong> 0.1.0 (workspace.package)</p>
+<p><strong>Transport:</strong> MCP 2024-11-05 stdio (<code>splatcraft-cli mcp</code>); no control port claimed</p>
+<p><strong>Crates:</strong> <code>splat-formats</code> (PLY/SPZ codecs) / <code>splat-ops</code> (crop, prune,</p>
+<p>transform, merge, reduce_sh) / <code>splat-view</code> (<code>LiveScene</code> via wgpu-3dgs-viewer</p>
+<p>0.8) / <code>splat-worlds</code> (Marble client, fake-transport tests) / <code>splat-train</code></p>
+<p>(tool locator, planner, supervisor) / <code>craft-secrets</code> (env first, OS store</p>
+<p>second) / <code>splatcraft-core</code> (L1 <code>dispatch</code>) / <code>splatcraft-mcp</code> (L2 CLI+MCP,</p>
+<p>hidden <code>job-run</code>) / <code>splatcraft-app</code> (L3 egui viewport)</p>
+<h2 class="section-title">1. Problem</h2>
+<p>Gaussian-splat work is split across converters, viewers, the Marble web</p>
+<p>credit flow, and trainer CLIs (ffmpeg, COLMAP, Brush) with incompatible</p>
+<p>flags. A single local bus should inspect, convert, edit, merge, render,</p>
+<p>generate, and train splats without moving secrets through the LLM context.</p>
+<h2 class="section-title">2. What works today (nothing else is claimed)</h2>
+<ul>
+<li>Binary PLY read/write (3DGS layout, SH degree 0-3); SPZ v2/v3 read, v3</li>
+</ul>
+<p>write; SPZ v4 (zstd) refused with a clear error.</p>
+<ul>
+<li><code>inspect</code>, <code>convert</code> (atomic write, no overwrite unless asked),</li>
+</ul>
+<p><code>engine_status</code> (env, PATH, tools dir; nothing executed).</p>
+<ul>
+<li><code>edit</code>: crop, prune, transform (translate, uniform scale, axis-angle</li>
+</ul>
+<p>rotation), <code>reduce_sh</code>, all in RDF. Rotating SH degree &gt; 0 is refused;</p>
+<p>run <code>reduce_sh</code> to degree 0 first.</p>
+<ul>
+<li><code>merge</code>: 2-64 files, mixed PLY/SPZ, SH reduced to the lowest degree.</li>
+<li><code>render</code>: headless GPU PNG still (opaque black); <code>unsupported</code> with no</li>
+</ul>
+<p>GPU adapter.</p>
+<ul>
+<li><code>worlds</code>: Marble ledger/credits/generate/status/fetch/list behind a</li>
+</ul>
+<p><code>Transport</code> trait; scripted fake only, no live call yet. Spend guard:</p>
+<p>dry run unless <code>confirm_spend</code> is true, JSONL ledger after POST, cap</p>
+<p><code>SPLATCRAFT_MARBLE_CAP</code> (default 4500), per-call <code>max_credits</code> can only</p>
+<p>lower it. See <code>SECRETS_STANDARD.md</code>: no MCP tool or bus op touches</p>
+<p>secrets; only <code>splatcraft-cli secret set|status|delete</code>.</p>
+<ul>
+<li><code>train</code>: plan/start/status/log/cancel/list over ffmpeg + COLMAP + Brush</li>
+</ul>
+<p>with <code>--help</code> flag discovery, detached supervisor, heartbeat 5 s, stale</p>
+<p>45 s means <code>lost</code>. Layout <code>&lt;data&gt;/jobs/&lt;id&gt;/</code>, event log <code>jobs.jsonl</code>.</p>
+<ul>
+<li>L3 viewport: path box, Load, orbit drag, wheel zoom, double-click reset</li>
+</ul>
+<p>through the same <code>LiveScene</code> as headless <code>render</code>.</p>
+<h2 class="section-title">3. Non-goals</h2>
+<p>No SH rotation math before <code>reduce_sh</code>; no live Marble spend without owner</p>
+<p>confirmation; no committed binaries or engines in the repo</p>
+<p>(<code>SPLATCRAFT_TOOLS</code> lives outside, Goliath default <code>D:\Dev\tools\splatcraft</code>);</p>
+<p>no second trainer before Brush flags are stable.</p>
+<h2 class="section-title">4. Rules (from AGENTS.md, binding here too)</h2>
+<p>LF line endings only; no em dashes in docs, code, or commits; realistic</p>
+<p>day-scale timelines; single trunk <code>master</code> (short-lived <code>agent/&lt;task&gt;</code></p>
+<p>branches only, merged and deleted same day); install requests follow</p>
+<p><code>INSTALL.md</code> agent steps exactly.</p>
+<h2 class="section-title">5. Gates</h2>
+<p><code>just fmt-check</code>, <code>just check</code>, <code>just test</code>, <code>just build-release</code>, then</p>
+<p><code>splatcraft --smoke</code>. <code>just ci</code> runs the first three. Render tests skip</p>
+<p>with a stderr note when no GPU adapter exists.</p>
+
+  
+</body>
+</html>
