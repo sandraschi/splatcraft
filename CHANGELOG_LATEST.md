@@ -24,4 +24,5 @@ Windows x64 only for now.
 - SH rotation is not implemented; rotating splats with SH degree > 0 is refused.
 - Viewport mouse feel and surface colour have not been judged by eye.
 - External engines (ffmpeg, COLMAP, Brush) are not bundled. Point `SPLATCRAFT_TOOLS` at them.
-- No installer; the zip holds the two executables. The `.mcpb` bundle wraps `splatcraft-cli.exe`.
+- No installer yet. `splatcraft.exe` (app) and `splatcraft-cli.exe` (CLI and MCP server) are
+  attached as plain assets; the `.mcpb` bundle wraps `splatcraft-cli.exe`.

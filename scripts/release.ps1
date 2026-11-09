@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    splatcraft release: gates, release build, smoke, zip + mcpb bundle, checksums.
+    splatcraft release: gates, release build, smoke, exes + mcpb bundle, checksums.
 
 .DESCRIPTION
     Rust adaptation of the fleet release template. There is no Tauri, no PyInstaller sidecar
@@ -102,16 +102,15 @@ Write-Ok 'smoke: app, cli status, MCP initialize'
 Write-Phase 'Phase 3: artifacts'
 if (Test-Path $Dist) { Remove-Item $Dist -Recurse -Force }
 New-Item -ItemType Directory -Force $Dist | Out-Null
-$base = "$RepoName-v$Version-windows-x64"
-$stage = Join-Path $Dist $base
-New-Item -ItemType Directory -Force $stage | Out-Null
-Copy-Item $app, $cli $stage
-foreach ($f in 'README.md', 'INSTALL.md', 'LICENSE-MIT', 'LICENSE-APACHE', 'CHANGELOG_LATEST.md') { Copy-Item (Join-Path $RepoRoot $f) $stage }
-$zip = Join-Path $Dist "$base.zip"
-Compress-Archive -Path $stage -DestinationPath $zip
-Write-Ok "zip: $([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB"
-
-$assets = @($zip)
+# Executables ship as plain release assets under stable names (no zip), so
+# releases/latest/download/splatcraft-cli.exe is a fixed URL and MCP configs need no version.
+$assets = @()
+foreach ($f in $app, $cli) {
+    $dst = Join-Path $Dist (Split-Path -Leaf $f)
+    Copy-Item $f $dst
+    Write-Ok "$(Split-Path -Leaf $f): $([math]::Round((Get-Item $dst).Length / 1MB, 1)) MB"
+    $assets += $dst
+}
 if (-not $SkipMcpb) {
     $bunx = Join-Path $env:USERPROFILE '.bun\bin\bunx.exe'
     if (-not (Test-Path $bunx)) { $g = Get-Command bunx -ErrorAction SilentlyContinue; if ($g) { $bunx = $g.Source } else { Fail 'bunx not found' } }
@@ -127,7 +126,6 @@ if (-not $SkipMcpb) {
     Write-Ok "mcpb: $([math]::Round((Get-Item $mcpb).Length / 1MB, 1)) MB"
     $assets += $mcpb
 }
-Remove-Item $stage -Recurse -Force
 
 $sums = foreach ($a in $assets) { "{0}  {1}" -f (Get-FileHash $a -Algorithm SHA256).Hash.ToLower(), (Split-Path -Leaf $a) }
 $sumFile = Join-Path $Dist 'SHA256SUMS.txt'

@@ -12,14 +12,17 @@ Gemini CLI, Codex, OpenCode, Windsurf) and say:
 The agent should read this file and follow the "Agent install steps" section below. Before
 v0.1.0 is published as a GitHub release, this builds from source, so it needs the Rust
 toolchain (the agent installs it if you agree). Once a release exists, the agent prefers the
-prebuilt zip and skips the build.
+prebuilt executables and skips the build.
 
-## Option B: prebuilt zip (after the first release is published)
+## Option B: prebuilt executables
 
 1. Open [Releases](https://github.com/sandraschi/splatcraft/releases/latest).
-2. Download `splatcraft-v*-windows-x64.zip` and `SHA256SUMS.txt`, verify the hash.
-3. Unzip anywhere. `splatcraft.exe` is the desktop app, `splatcraft-cli.exe` is the CLI and
-   MCP server (`splatcraft-cli.exe mcp`).
+2. Download `splatcraft.exe` (desktop app), `splatcraft-cli.exe` (CLI and MCP server,
+   `splatcraft-cli.exe mcp`) and `SHA256SUMS.txt`, verify the hashes.
+3. Put both in one folder of your choice. They are self-contained; nothing to unpack.
+
+Stable download URLs: `https://github.com/sandraschi/splatcraft/releases/latest/download/splatcraft-cli.exe`
+(same pattern for `splatcraft.exe` and `SHA256SUMS.txt`).
 
 ## Option C: MCPB drag and drop (Claude Desktop)
 
@@ -43,7 +46,7 @@ cd splatcraft
 cargo build --release --workspace
 ```
 
-Binaries land in `target\release\`. To build the zip and the `.mcpb` yourself:
+Binaries land in `target\release\`. To build the release assets and the `.mcpb` yourself:
 `pwsh -NoProfile -File scripts\release.ps1` (builds only; it never tags or uploads without
 `-Publish`).
 
@@ -193,8 +196,8 @@ and do not improvise around errors.
    otherwise a folder of their choice) and whether they want training support (the external
    engines, roughly 550 MB). Do not download engines unless they say yes.
 2. Check for a published release: `gh release view --repo sandraschi/splatcraft` or the
-   GitHub releases page. If one exists, download the zip and `SHA256SUMS.txt`, verify the
-   SHA-256, unzip, and skip to step 5. If none exists, continue to step 3.
+   GitHub releases page. If one exists, download `splatcraft.exe`, `splatcraft-cli.exe` and
+   `SHA256SUMS.txt` into the install folder, verify the SHA-256 of both exes, and skip to step 5. If none exists, continue to step 3.
 3. Check prerequisites: `git --version`, `cargo --version`. If Rust is missing, tell the user
    and install it with rustup only after they agree. MSVC build tools are required on Windows.
 4. `git clone https://github.com/sandraschi/splatcraft <dir>`, then in that directory
