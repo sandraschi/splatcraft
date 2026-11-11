@@ -26,3 +26,5 @@ Windows x64 only for now.
 - External engines (ffmpeg, COLMAP, Brush) are not bundled. Point `SPLATCRAFT_TOOLS` at them.
 - No installer yet. `splatcraft.exe` (app) and `splatcraft-cli.exe` (CLI and MCP server) are
   attached as plain assets; the `.mcpb` bundle wraps `splatcraft-cli.exe`.
+  `splatcraft-0.1.0-windows-x64-portable.zip` holds the same two exes and exists only so the
+  craft launcher can install the app.

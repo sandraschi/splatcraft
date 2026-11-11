@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    splatcraft release: gates, release build, smoke, exes + mcpb bundle, checksums.
+    splatcraft release: gates, release build, smoke, exes + launcher zip + mcpb bundle, checksums.
 
 .DESCRIPTION
     Rust adaptation of the fleet release template. There is no Tauri, no PyInstaller sidecar
@@ -111,6 +111,13 @@ foreach ($f in $app, $cli) {
     Write-Ok "$(Split-Path -Leaf $f): $([math]::Round((Get-Item $dst).Length / 1MB, 1)) MB"
     $assets += $dst
 }
+
+# Launcher-only extra: the craft-launcher discovers apps through
+# {id}-{version}-windows-x64-portable.zip with {id}.exe at the zip root. Same exes, nothing else.
+$zip = Join-Path $Dist "$RepoName-$Version-windows-x64-portable.zip"
+Compress-Archive -Path $app, $cli -DestinationPath $zip -Force
+Write-Ok "launcher zip: $(Split-Path -Leaf $zip)"
+$assets += $zip
 if (-not $SkipMcpb) {
     $bunx = Join-Path $env:USERPROFILE '.bun\bin\bunx.exe'
     if (-not (Test-Path $bunx)) { $g = Get-Command bunx -ErrorAction SilentlyContinue; if ($g) { $bunx = $g.Source } else { Fail 'bunx not found' } }
