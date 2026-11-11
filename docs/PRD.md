@@ -60,3 +60,21 @@ branches only, merged and deleted same day); install requests follow
 `just fmt-check`, `just check`, `just test`, `just build-release`, then
 `splatcraft --smoke`. `just ci` runs the first three. Render tests skip
 with a stderr note when no GPU adapter exists.
+
+## 6. UI/UX Architecture & Menu Bar Standard
+
+In accordance with [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md):
+- **Pattern 2 (Viewport-Centric Craft Workstation):** Persistent 3D Gaussian Splatting viewport (`LiveScene` wgpu 3dgs renderer) with surrounding camera controls, orbit gizmos, and point-cloud inspectors. Top quick button row acts as accelerators into the `View` menu. To add a new splat tool or training panel:
+  1. Register a visibility toggle in the `View` or `Window` menu.
+  2. Add an entry in the sidebar Transform / Filter toolbox.
+  3. Wire the action directly into the universal `Command::dispatch` bus.
+- **Top Menu Bar Hierarchy:**
+  - `File`: New Scene (`Ctrl+N`), Open Splat PLY/SPZ (`Ctrl+O`), Open Recent ▸, Save (`Ctrl+S`), Save As... (`Ctrl+Shift+S`), Export Still / Video (`Ctrl+E`), Close (`Ctrl+W`), Quit (`Ctrl+Q`).
+  - `Edit`: Undo (`Ctrl+Z`), Redo (`Ctrl+Y`), Cut, Copy, Paste, Select All, Preferences (`Ctrl+,`).
+  - `View`: 3D Splat Viewport, Orbit Camera HUD, Point Cloud Density Inspector, Training Jobs Monitor, Marble Worlds Ledger, Theme (`Dark`/`Light`).
+  - `Insert`: Import Additional Splat (Merge), Add Bounding Crop Box, Load Camera Path, Add Training Footage.
+  - `Modify`: Crop Selection, Prune Low-Opacity Splats, Transform (Translate/Rotate/Scale), Reduce SH Degree.
+  - `Commands`: Run Headless Render, Plan Training Job (COLMAP/Brush), Convert PLY <-> SPZ, Check Marble Credits, Cancel Training Job.
+  - `Window`: Reset Layout, 3D Viewport, Job Supervisor Drawer, Inspector Dock.
+  - `Help` (Mandatory 5-Dialog Suite): `Command Palette...` (`Ctrl+K`), `Keyboard Shortcuts...` (`F1`), `Project Files & Docs...`, `Licenses & Notices...`, `About SplatCraft`.
+- **Behavioral Mechanics:** Smooth `switch_on_hover` between top-level menus, zero-unsafe immediate-mode rendering, and headless `--smoke` parity.
