@@ -1,4 +1,4 @@
-# SplatCraft — Tiered Execution Plan
+# SplatCraft - Tiered Execution Plan
 
 **Parent Standard:** [`RUST_ARTCRAFT_STANDARD.md`](../../mcp-central-docs/standards/RUST_ARTCRAFT_STANDARD.md)  
 **Menu Bar Standard:** [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md)  
@@ -18,7 +18,7 @@ Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──>
 
 ## Tier Specifications
 
-### Tier 1 — Core Splat Codecs & Ops (`splat-formats`, `splat-ops`, `splatcraft-core`)
+### Tier 1 - Core Splat Codecs & Ops (`splat-formats`, `splat-ops`, `splatcraft-core`)
 - [x] L1 `Command::dispatch` universal 3DGS execution bus.
 - [x] Binary PLY reader/writer (3DGS layout, SH degree 0-3).
 - [x] SPZ v2/v3 compressed format support.
@@ -27,21 +27,24 @@ Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──>
 - [x] Training job supervisor (ffmpeg, COLMAP, Brush flag discovery).
 - [x] `#![forbid(unsafe_code)]` and zero-panic clippy lints.
 
-### Tier 2 — Headless Driver & FastMCP (`splatcraft-mcp`)
+### Tier 2 - Headless Driver & FastMCP (`splatcraft-mcp`)
 - [x] Unified CLI `splatcraft-cli` with `--json` output.
 - [x] FastMCP stdio server communicating over JSON-RPC 2.0.
 - [x] Marble client integration with fake-transport test harnesses and spend guards.
 - [x] Headless `--smoke` verification without window initialization.
 
-### Tier 3 — Desktop Workstation UI (`splatcraft-app`)
+### Tier 3 - Desktop Workstation UI (`splatcraft-app`)
 - [x] Immediate-mode `egui` 0.37 / `wgpu` workstation.
 - [x] Interactive 3D Gaussian Splatting orbit viewport.
 - [x] Splat density and spherical harmonics telemetry inspectors.
 
-### Tier 4 — Craft Menu Bar Standard, Help Suite & Hardened Verification
+### Tier 4 - Craft Menu Bar Standard, Help Suite & Hardened Verification
 - [x] Universal 8-menu bar (`File`, `Edit`, `View`, `Insert`, `Modify`, `Commands`, `Window`, `Help`) with `switch_on_hover`.
 - [x] Mandatory 5-dialog Help suite (`Command Palette...`, `Keyboard Shortcuts...`, `Project Files & Docs...`, `Licenses & Notices...`, `About SplatCraft`).
 - [x] Fleet UI/UX Pattern 2 adherence: viewport-centric navigation, top button row mapped to View toggles, panel visibility managed via `View` / `Window`.
 - [x] Tofu Guard verification (100% font glyph coverage, zero tofu placeholder boxes).
-- [x] Headless `--smoke` parity validation.
-- [x] Standalone release binary packaging and NSIS installer.
+- [x] Headless `--smoke` parity validation (menu parity, tofu guard, synth/convert/inspect/edit/merge/worlds ledger).
+- [x] Standalone release packaging: plain exes, launcher portable zip, `.mcpb`, `SHA256SUMS` (`scripts/release.ps1`).
+- [ ] NSIS installer wired into `scripts/release.ps1`. `craft.config.psd1` says `Installer = $true` and
+      `installer/craft-installer.nsi` + `makensis` are present, but the vendored script here was cut down
+      and states "no NSIS installer", so no `<name>-<version>-setup.exe` is produced today.

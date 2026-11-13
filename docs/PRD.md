@@ -38,8 +38,25 @@ generate, and train splats without moving secrets through the LLM context.
 - `train`: plan/start/status/log/cancel/list over ffmpeg + COLMAP + Brush
   with `--help` flag discovery, detached supervisor, heartbeat 5 s, stale
   45 s means `lost`. Layout `<data>/jobs/<id>/`, event log `jobs.jsonl`.
-- L3 viewport: path box, Load, orbit drag, wheel zoom, double-click reset
-  through the same `LiveScene` as headless `render`.
+- L3 workstation (Tier 4): viewport-centric Craft Pattern 2 shell with the
+  universal 8-menu bar (`File` `Edit` `View` `Insert` `Modify` `Commands`
+  `Window` `Help`), the 5-dialog Help suite (Command Palette `Ctrl+K`,
+  Shortcuts `F1`, Project Docs, Licenses, About) plus Preferences, a left
+  Toolbox and right Inspector dock, and a quick-button row. Every control is
+  one `dispatch` call; there is no UI-only logic. Panels: inspect, convert,
+  synth, an edit-pipeline builder (crop / prune / transform / reduce_sh with
+  step list), merge, render, engines probe, training jobs, and the Worlds
+  ledger. GPU viewport draws through the same `LiveScene` as headless
+  `render`; orbit drag, wheel zoom, double-click reset.
+- L3 honesty: "Export Video" is refused with a message (render writes PNG
+  stills only); the Worlds panel never passes `confirm_spend`; SH rotation
+  refusal is surfaced as guidance, not hidden.
+- L3 shell: `#![forbid(unsafe_code)]`, `harsh_visuals` / `crisp_light_visuals`
+  with a vector sun/moon toggle (no tofu glyphs), `Ctrl+wheel` zoom, and a
+  `glyph_allowlist` + `check_string_for_tofu` test pair.
+- `--smoke` covers menu-dispatch parity, the tofu guard, and an end-to-end
+  synth -> convert -> inspect -> edit -> merge -> worlds-ledger run; `render`
+  passes either as a PNG or as a clean `unsupported` skip with no GPU.
 
 ## 3. Non-goals
 
