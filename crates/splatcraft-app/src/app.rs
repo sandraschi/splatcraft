@@ -574,11 +574,17 @@ fn harsh_visuals() -> egui::Visuals {
 
 fn crisp_light_visuals() -> egui::Visuals {
     let mut v = egui::Visuals::light();
-    v.override_text_color = Some(egui::Color32::from_rgb(15, 23, 42));
-    v.window_fill = egui::Color32::from_rgb(248, 250, 252);
-    v.panel_fill = egui::Color32::from_rgb(248, 250, 252);
-    v.extreme_bg_color = egui::Color32::from_rgb(241, 245, 249);
-    v.code_bg_color = egui::Color32::from_rgb(241, 245, 249);
+    v.override_text_color = Some(egui::Color32::BLACK);
+    v.weak_text_color = Some(egui::Color32::BLACK);
+    v.window_fill = egui::Color32::WHITE;
+    v.panel_fill = egui::Color32::WHITE;
+    v.extreme_bg_color = egui::Color32::WHITE;
+    v.faint_bg_color = egui::Color32::WHITE;
+    v.code_bg_color = egui::Color32::WHITE;
+    v.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, egui::Color32::BLACK);
+    v.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, egui::Color32::BLACK);
+    v.widgets.hovered.fg_stroke = egui::Stroke::new(1.5, egui::Color32::BLACK);
+    v.widgets.active.fg_stroke = egui::Stroke::new(1.5, egui::Color32::BLACK);
     v.widgets.noninteractive.bg_stroke =
         egui::Stroke::new(1.0, egui::Color32::from_rgb(226, 232, 240));
     v.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(203, 213, 225));
