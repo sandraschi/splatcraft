@@ -9,7 +9,7 @@ const PROTOCOL: &str = "2024-11-05";
 
 /// tool name -> (core op, description, input schema)
 pub fn tools_list() -> Value {
-    json!([
+    let mut list = json!([
         {
             "name": "splat_inspect",
             "description": "Summarise a Gaussian splat file (.ply or .spz): count, bounding box, SH degree, opacity and scale stats, non-finite count.",
@@ -158,7 +158,50 @@ pub fn tools_list() -> Value {
                 "required": ["path"]
             }
         }
-    ])
+    ]);
+    if let Some(tools) = list.as_array_mut() {
+        tools.push(json!({
+            "name": "splat_mesh",
+            "description": "Write a GLB box collider from the finite positions in a .ply or .spz file. This is generated here. It is not Marble's downloaded collider.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "input": {"type": "string"},
+                    "output": {"type": "string", "description": "Must end in .glb"},
+                    "overwrite": {"type": "boolean", "default": false}
+                },
+                "required": ["input", "output"]
+            }
+        }));
+        tools.push(json!({
+            "name": "splat_recolor",
+            "description": "Tint near-grey splats (SH DC channel spread at or below grey_delta, default 0.08) with a named recipe and write a texturecraft bridge JSON beside the output. action=list returns the recipes and needs no paths. Recipes: ghibli, cyberpunk, ova. Saturated splats are left unchanged. Higher SH bands on tinted splats are cleared.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["list"]},
+                    "input": {"type": "string"},
+                    "output": {"type": "string"},
+                    "recipe": {"type": "string", "enum": ["ghibli", "cyberpunk", "ova"]},
+                    "grey_delta": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.08},
+                    "overwrite": {"type": "boolean", "default": false}
+                }
+            }
+        }));
+        tools.push(json!({
+            "name": "splat_recipe",
+            "description": "Run an offline democraft recipe into a directory. name: info (inspect a synthetic scene), convert (ply to spz), collider (GLB box), recolor (ghibli tint of a grey scene plus texturecraft bridge).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "enum": ["info", "convert", "collider", "recolor"]},
+                    "out": {"type": "string", "description": "Directory to write into"}
+                },
+                "required": ["name", "out"]
+            }
+        }));
+    }
+    list
 }
 
 fn op_for(tool: &str) -> Option<&'static str> {
@@ -172,6 +215,9 @@ fn op_for(tool: &str) -> Option<&'static str> {
         "splat_train" => Some("train"),
         "splat_engine_status" => Some("engine_status"),
         "splat_synth" => Some("synth"),
+        "splat_mesh" => Some("mesh"),
+        "splat_recolor" => Some("recolor"),
+        "splat_recipe" => Some("recipe"),
         _ => None,
     }
 }
@@ -275,7 +321,10 @@ mod tests {
                 "splat_worlds",
                 "splat_train",
                 "splat_engine_status",
-                "splat_synth"
+                "splat_synth",
+                "splat_mesh",
+                "splat_recolor",
+                "splat_recipe"
             ]
         );
     }

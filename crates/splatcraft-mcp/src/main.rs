@@ -105,6 +105,36 @@ enum Cmd {
         #[arg(long)]
         dir: String,
     },
+    /// Write a GLB box collider from the finite positions in a splat file.
+    Mesh {
+        #[arg(long)]
+        input: String,
+        /// Must end in .glb.
+        #[arg(long)]
+        output: String,
+        #[arg(long)]
+        overwrite: bool,
+    },
+    /// Tint near-grey splats with a named recipe and write a texturecraft bridge file.
+    Recolor {
+        #[arg(long)]
+        input: String,
+        #[arg(long)]
+        output: String,
+        /// ghibli, cyberpunk, or ova.
+        #[arg(long)]
+        recipe: String,
+        #[arg(long)]
+        overwrite: bool,
+    },
+    /// Offline democraft recipe: info, convert, collider, or recolor.
+    Recipe {
+        /// info, convert, collider, or recolor.
+        name: String,
+        /// Directory the recipe writes into.
+        #[arg(long)]
+        out: String,
+    },
     /// Write synthetic random splats (for tests and smoke runs).
     Synth {
         #[arg(long)]
@@ -289,6 +319,24 @@ fn main() {
                 1
             }
         },
+        Cmd::Mesh {
+            input,
+            output,
+            overwrite,
+        } => run(
+            "mesh",
+            json!({"input": input, "output": output, "overwrite": overwrite}),
+        ),
+        Cmd::Recolor {
+            input,
+            output,
+            recipe,
+            overwrite,
+        } => run(
+            "recolor",
+            json!({"input": input, "output": output, "recipe": recipe, "overwrite": overwrite}),
+        ),
+        Cmd::Recipe { name, out } => run("recipe", json!({"name": name, "out": out})),
         Cmd::Secret { action } => run_secret(action),
         Cmd::JobRun { dir } => match splatcraft_core::train::run_supervisor(&dir) {
             Ok(()) => 0,

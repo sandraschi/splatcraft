@@ -8,6 +8,9 @@
 #![deny(clippy::unimplemented)]
 #![deny(clippy::todo)]
 
+pub mod mesh;
+pub mod recolor;
+
 use splat_formats::{rest_coeffs, FormatError, Result, Splats};
 
 fn sigmoid(x: f32) -> f32 {

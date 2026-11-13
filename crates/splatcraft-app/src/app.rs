@@ -85,6 +85,7 @@ pub struct SplatApp {
     synth_count: String,
     synth_degree: String,
     synth_seed: String,
+    recolor_recipe: String,
     // Worlds panel.
     worlds_action: String,
     worlds_prompt: String,
@@ -155,6 +156,7 @@ impl Default for SplatApp {
             synth_count: "1000".to_string(),
             synth_degree: "0".to_string(),
             synth_seed: "1".to_string(),
+            recolor_recipe: "ghibli".to_string(),
             worlds_action: "ledger".to_string(),
             worlds_prompt: String::new(),
             worlds_kind: "text".to_string(),
@@ -382,6 +384,28 @@ impl SplatApp {
         ) {
             Ok(v) => self.set_result("render", v),
             Err(e) => self.set_error("render", e),
+        }
+    }
+
+    fn do_mesh(&mut self) {
+        self.push_undo("mesh");
+        match dispatch(
+            "mesh",
+            &json!({"input": self.path, "output": self.output, "overwrite": self.overwrite}),
+        ) {
+            Ok(v) => self.set_result("mesh", v),
+            Err(e) => self.set_error("mesh", e),
+        }
+    }
+
+    fn do_recolor(&mut self) {
+        self.push_undo("recolor");
+        match dispatch(
+            "recolor",
+            &json!({"input": self.path, "output": self.output, "recipe": self.recolor_recipe, "overwrite": self.overwrite}),
+        ) {
+            Ok(v) => self.set_result("recolor", v),
+            Err(e) => self.set_error("recolor", e),
         }
     }
 
@@ -904,6 +928,14 @@ impl SplatApp {
                         self.do_convert();
                         ui.close();
                     }
+                    if ui.button("Build Collision Mesh (GLB)").clicked() {
+                        self.do_mesh();
+                        ui.close();
+                    }
+                    if ui.button("Recolor Grey Splats").clicked() {
+                        self.do_recolor();
+                        ui.close();
+                    }
                     if ui.button("Check Marble Credits").clicked() {
                         self.worlds_action = "credits".to_string();
                         self.do_worlds();
@@ -1030,6 +1062,23 @@ impl SplatApp {
                 });
                 if ui.button("Run Synth").clicked() {
                     self.do_synth();
+                }
+            });
+            ui.collapsing("Collider and recolor", |ui| {
+                ui.small("Output for a collider must end in .glb. Recolor writes a .ply or .spz plus a texturecraft bridge JSON.");
+                if ui.button("Build collision mesh").clicked() {
+                    self.do_mesh();
+                }
+                ui.label("Recolor recipe (near-grey splats):");
+                egui::ComboBox::from_id_salt("recolor_recipe")
+                    .selected_text(self.recolor_recipe.clone())
+                    .show_ui(ui, |ui| {
+                        for name in ["ghibli", "cyberpunk", "ova"] {
+                            ui.selectable_value(&mut self.recolor_recipe, name.to_string(), name);
+                        }
+                    });
+                if ui.button("Recolor grey splats").clicked() {
+                    self.do_recolor();
                 }
             });
             ui.collapsing("Edit pipeline (RDF)", |ui| {
@@ -1345,6 +1394,8 @@ impl SplatApp {
                         ("worlds generate (dry run)", "Plan a Marble generation, no spend"),
                         ("train plan", "Dry-run a training pipeline"),
                         ("train list", "List training jobs"),
+                        ("mesh", "Build a GLB box collider"),
+                        ("recolor", "Tint near-grey splats"),
                         ("load scene", "Upload current path to the GPU viewport"),
                         ("reset camera", "Reset orbit camera"),
                     ];
@@ -1361,6 +1412,8 @@ impl SplatApp {
                                 "merge" => self.do_merge(),
                                 "render" => self.do_render(),
                                 "engine_status" => self.do_engines(),
+                                "mesh" => self.do_mesh(),
+                                "recolor" => self.do_recolor(),
                                 "load scene" => self.load_scene(frame),
                                 "reset camera" => self.view = View::default(),
                                 _ if id.starts_with("worlds") => {
@@ -1554,11 +1607,19 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
     let st = dispatch("status", &json!({})).map_err(|e| e.to_string())?;
     lines.push(format!("status: version {}", st["version"]));
     // Menu dispatch parity: every documented op must exist on the bus.
-    let ops = st["ops"].as_array().map(|a| a.len()).unwrap_or(0);
-    if ops < 10 {
-        return Err(format!("menu parity: expected 10 ops, got {ops}"));
+    let ops_arr = st["ops"].as_array().ok_or("status ops missing")?;
+    if ops_arr.len() < 13 {
+        return Err(format!(
+            "menu parity: expected 13 ops, got {}",
+            ops_arr.len()
+        ));
     }
-    lines.push(format!("menu parity: {ops} ops on dispatch"));
+    for name in ["mesh", "recolor", "recipe"] {
+        if !ops_arr.iter().any(|v| v.as_str() == Some(name)) {
+            return Err(format!("menu parity: missing {name}"));
+        }
+    }
+    lines.push(format!("menu parity: {} ops on dispatch", ops_arr.len()));
     let eng = dispatch("engine_status", &json!({})).map_err(|e| e.to_string())?;
     lines.push(format!("engines: {} of {} up", eng["up"], eng["total"]));
     let dir = std::env::temp_dir().join(format!("splatcraft-smoke-{}", std::process::id()));
@@ -1614,12 +1675,30 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
         ) {
             Ok(_) | Err(_) => {}
         }
+        let glb = dir.join("s.glb").to_string_lossy().into_owned();
+        let mesh = dispatch(
+            "mesh",
+            &json!({"input": ply, "output": glb, "overwrite": true}),
+        )
+        .map_err(|e| e.to_string())?;
+        if mesh["triangles"] != 12 {
+            return Err("mesh did not write a 12-triangle box".to_string());
+        }
+        let recipe_dir = dir.join("recolor");
+        let rec = dispatch(
+            "recipe",
+            &json!({"name": "recolor", "out": recipe_dir.to_string_lossy()}),
+        )
+        .map_err(|e| e.to_string())?;
+        if rec["tinted"].as_u64().unwrap_or(0) == 0 {
+            return Err("recolor recipe tinted nothing".to_string());
+        }
         Ok(())
     })();
     let _ = std::fs::remove_dir_all(&dir);
     run?;
     lines.push("synth -> convert -> inspect: 300 splats ok".to_string());
-    lines.push("edit + merge + worlds ledger ok".to_string());
+    lines.push("edit + merge + worlds ledger + mesh + recolor ok".to_string());
     // Tofu guard on the menu + panel strings the smoke ships.
     for s in [
         "File",

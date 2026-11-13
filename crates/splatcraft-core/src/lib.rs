@@ -14,6 +14,7 @@ pub mod ops;
 pub mod paths;
 pub mod render;
 pub mod secrets;
+pub mod studio;
 pub mod train;
 pub mod worlds;
 
@@ -49,6 +50,9 @@ pub const OPS: &[&str] = &[
     "render",
     "worlds",
     "train",
+    "mesh",
+    "recolor",
+    "recipe",
 ];
 
 /// Run `op` with JSON `args`. The only function front ends need.
@@ -64,6 +68,9 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "render" => render::render(args),
         "worlds" => worlds::worlds(args),
         "train" => train::train(args),
+        "mesh" => studio::mesh_op(args),
+        "recolor" => studio::recolor_op(args),
+        "recipe" => studio::recipe_op(args),
         other => Err(Error::Invalid(format!(
             "unknown op '{other}' (known: {})",
             OPS.join(", ")
