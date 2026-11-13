@@ -1,9 +1,12 @@
 //! splatcraft-app: L3 desktop host (eframe/egui) plus headless `--smoke`.
 //!
 //! The GUI calls `splatcraft_core::dispatch` in-process. No ports, no network.
+#![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
+#![deny(clippy::unimplemented)]
+#![deny(clippy::todo)]
 
 mod app;
 
@@ -46,8 +49,8 @@ fn main() {
         "splatcraft",
         options,
         Box::new(
-            |_cc| -> Result<Box<dyn eframe::App>, Box<dyn std::error::Error + Send + Sync>> {
-                Ok(Box::new(app::SplatApp::default()))
+            |cc| -> Result<Box<dyn eframe::App>, Box<dyn std::error::Error + Send + Sync>> {
+                Ok(Box::new(app::SplatApp::new(cc)))
             },
         ),
     );
