@@ -3,7 +3,7 @@
 Written for the next agent. Plain markdown, no assumed context.
 
 **Last touched:** 2026-11-13
-**Trunk:** `master`, commit `40e5415` (Tier 4 workstation)
+**Trunk:** `master`, code commit `29b7fb7` (Tier 5 mesh, recolor, recipe).
 
 ## What was being worked on
 
@@ -37,22 +37,19 @@ Gates run and green on 2026-11-13: `cargo fmt --all --check`, `cargo clippy
 `target\release\splatcraft.exe --smoke` -> `smoke: PASS` (render produced a real
 PNG on this machine's GPU).
 
+Tier 5 is commit `29b7fb7`: `mesh`, `recolor`, `recipe`,
+toolbox and Commands entries, and a fourth democraft demo `recolor-grey`.
+Checked with `cargo fmt --all --check`, clippy `-D warnings` on the touched
+crates, and `cargo test` for splat-ops, splatcraft-core, splatcraft-mcp, and
+the app. A full workspace clippy and release smoke were not re-run after Tier 5.
+
 ## Next step
 
-1. **Wire the NSIS installer.** This is the one open Tier 4 item.
-   `scripts/craft.config.psd1` says `Installer = $true`,
-   `installer/craft-installer.nsi` is present, and `makensis` is installed at
-   `C:\Program Files (x86)\NSIS\makensis.exe`, but this repo's
-   `scripts/release.ps1` was hand-cut and states "no NSIS installer", so no
-   `<name>-<version>-setup.exe` is produced. The canonical phase to vendor is in
-   `D:\Dev\repos\celcraft\scripts\release.ps1` lines 149-159 (defines
-   `PRODUCT_NAME / PRODUCT_ID / PRODUCT_VERSION / APP_EXE / CLI_EXE / BIN_DIR /
-   SRC_DIR / OUT_FILE / WEB_SITE`). Note `release.ps1` requires a clean tree on
-   `master`, so commit first and then run the script.
-2. Decide on `LauncherZip` in `craft.config.psd1`: the shipped `release.ps1`
-   builds the portable zip unconditionally, while the canonical script gates it
-   on `$cfg.LauncherZip`. Either add the key or leave the bespoke behaviour and
-   note it.
+Tier 5 is in the tree: `mesh` (GLB box), `recolor` (ghibli / cyberpunk / ova plus
+`*.texturecraft.json`), and `recipe info|convert|collider|recolor`. Democraft's
+splat demos call those recipe verbs and write into the demo directory. NSIS stays
+out. PRD section 6 still describes a celcraft document menu. Eye-check the
+viewport, and run one real training clip, when those are the job.
 
 ## Deliberately not done
 

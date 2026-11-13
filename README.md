@@ -24,7 +24,7 @@ Desktop, build from source, manual MCP config. mcpb is not Python-only; its mani
 packed, not yet install-tested in Claude Desktop). Training additionally needs ffmpeg, COLMAP
 and Brush, which are not bundled.
 
-**Status: Day 4 code complete, first real training run pending.** What works today, and
+**Status: Tier 5 code complete, first real training run pending.** What works today, and
 nothing else is claimed:
 
 - Read and write binary PLY (3DGS layout, SH degree 0 to 3).
@@ -47,6 +47,11 @@ nothing else is claimed:
   untested against the real service.
 - `train`: video, image folder or COLMAP dataset to splat (absorbs splatmaker-mcp). Actions
   `plan` (dry run, shows every stage), `start`, `status`, `log`, `cancel`, `list`. Details below.
+- `mesh`: GLB box collider from the finite positions in the file. Marble's downloaded
+  collider is a separate fetch asset.
+- `recolor`: tints near-grey splats with `ghibli`, `cyberpunk`, or `ova` and writes a
+  texturecraft bridge JSON beside the output. Saturated splats are unchanged.
+- `recipe`: offline democraft runs `info`, `convert`, `collider`, and `recolor`.
 - Live viewport in the egui app: type a path, press Load, drag to orbit, wheel to zoom,
   double-click to reset. It draws through an egui-wgpu paint callback using the same
   `LiveScene` code as the headless `render`. Verified so far: it compiles, the app starts on
@@ -92,8 +97,10 @@ Where the tools are found (first hit wins): env override `SPLATCRAFT_BRUSH`, `_N
 "not found", no fallback), then PATH, then the tools dir `SPLATCRAFT_TOOLS` (default
 `./tools`; `<tool>/bin` then `<tool>`). `SPLATCRAFT_CLI` overrides the supervisor binary.
 
-Not built yet: collision mesh generation of our own, texturecraft recolor of monochrome
-splats, SH rotation. See the plan below.
+`mesh` writes a GLB box collider from the finite positions in a splat file. `recolor`
+tints near-grey splats with `ghibli`, `cyberpunk`, or `ova` and writes a texturecraft
+bridge JSON beside the output. `recipe info|convert|collider|recolor` are the offline
+democraft runs. SH rotation is still not built. See the plan below.
 
 ## Use
 
@@ -106,6 +113,9 @@ cargo run -p splatcraft-mcp -- edit --input a.ply --output b.spz --steps "@steps
 cargo run -p splatcraft-mcp -- merge --inputs a.ply b.spz --output m.ply
 cargo run -p splatcraft-mcp -- render --input a.ply --output a.png --yaw-deg 30
 cargo run -p splatcraft-mcp -- worlds --args "@dry.json"   # {"action":"generate","prompt":"...","...":"..."} is a dry run
+cargo run -p splatcraft-mcp -- mesh --input a.ply --output a.glb
+cargo run -p splatcraft-mcp -- recolor --input a.ply --output tinted.ply --recipe ghibli
+cargo run -p splatcraft-mcp -- recipe collider --out ./out
 cargo run -p splatcraft-mcp -- train --args "@plan.json"   # {"action":"plan","video":"clip.mp4","output":"out.ply"}
 cargo run -p splatcraft-mcp -- mcp        # MCP stdio server
 cargo run -p splatcraft --bin splatcraft  # desktop host
@@ -115,10 +125,11 @@ cargo run -p splatcraft --bin splatcraft  # desktop host
 which strips inner double quotes).
 
 MCP tools: `splat_inspect`, `splat_convert`, `splat_edit`, `splat_merge`, `splat_render`,
-`splat_worlds`, `splat_train`, `splat_engine_status`, `splat_synth`.
+`splat_worlds`, `splat_train`, `splat_engine_status`, `splat_mesh`, `splat_recolor`,
+`splat_recipe`, `splat_synth`.
 Set `SPLATCRAFT_ROOT` to confine all paths to a directory.
 
-## Plan (AI-assisted days)
+## Plan (one row is about an hour of agent work)
 
 | Day | Scope |
 |---|---|
@@ -126,8 +137,7 @@ Set `SPLATCRAFT_ROOT` to confine all paths to a directory.
 | 2 | Edit ops (crop, transform, merge, prune), headless render (done); live egui viewport (done, needs a look by eye) |
 | 3 | Marble client (absorbs worldlabs-mcp), spend ledger (done, offline-tested; first live read-only check pending) |
 | 4 | Brush trainer adapter, ffmpeg and COLMAP prep, job ledger (done, tested with real processes); first real video-to-splat run pending a proper orbit clip |
-| 5 | Collision mesh, texturecraft bridge spike |
-| 6 to 7 | Recolor of grey splats, democraft recipes, installer |
+| 5 | Collision mesh, texturecraft bridge, recolor recipes, democraft recipes (done) |
 
 ## License
 

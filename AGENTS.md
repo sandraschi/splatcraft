@@ -24,7 +24,7 @@ so tools that write files must emit LF. After bulk writes, check:
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
 
 CLI, MCP and app share `dispatch`. Never put logic in a front end.
-Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train.
+Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train, mesh, recolor, recipe.
 
 ## Rules
 
@@ -38,7 +38,7 @@ Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds
 - No mocks that hide missing behaviour. `synth` data is labelled synthetic.
 - Secrets: never read, print, log, store or ask for an API key value. No MCP tool or `dispatch` op may expose secrets; only `splatcraft-cli secret set|status|delete`, typed by the owner, may write them. If a key is needed, tell the owner to run `splatcraft-cli secret set worlds`.
 - No em dashes in docs, code or commit messages.
-- Realistic AI-assisted timelines (days, not weeks) in all docs.
+- Realistic AI-assisted timelines. A plan row is about an hour of agent work.
 
 ## Gates (all must be green before commit)
 

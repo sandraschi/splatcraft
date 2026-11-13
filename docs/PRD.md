@@ -35,6 +35,12 @@ generate, and train splats without moving secrets through the LLM context.
   `SPLATCRAFT_MARBLE_CAP` (default 4500), per-call `max_credits` can only
   lower it. See `SECRETS_STANDARD.md`: no MCP tool or bus op touches
   secrets; only `splatcraft-cli secret set|status|delete`.
+- `mesh`: GLB box collider from the file's own finite positions. Marble's
+  downloaded collider stays a fetch asset.
+- `recolor`: tints near-grey SH DC with `ghibli`, `cyberpunk`, or `ova`,
+  clears higher SH bands on those splats, and writes a texturecraft bridge
+  JSON beside the output. Saturated splats are left unchanged.
+- `recipe`: offline democraft runs `info`, `convert`, `collider`, `recolor`.
 - `train`: plan/start/status/log/cancel/list over ffmpeg + COLMAP + Brush
   with `--help` flag discovery, detached supervisor, heartbeat 5 s, stale
   45 s means `lost`. Layout `<data>/jobs/<id>/`, event log `jobs.jsonl`.
@@ -42,11 +48,12 @@ generate, and train splats without moving secrets through the LLM context.
   universal 8-menu bar (`File` `Edit` `View` `Insert` `Modify` `Commands`
   `Window` `Help`), the 5-dialog Help suite (Command Palette `Ctrl+K`,
   Shortcuts `F1`, Project Docs, Licenses, About) plus Preferences, a left
-  Toolbox and right Inspector dock, and a quick-button row. Every control is
-  one `dispatch` call; there is no UI-only logic. Panels: inspect, convert,
+  Toolbox and right Inspector dock, and a quick-button row. Modify, Commands,
+  and the toolbox call `dispatch(op, args)`. File New, Save As, Export Video,
+  and some Insert items only set status text. Panels: inspect, convert,
   synth, an edit-pipeline builder (crop / prune / transform / reduce_sh with
-  step list), merge, render, engines probe, training jobs, and the Worlds
-  ledger. GPU viewport draws through the same `LiveScene` as headless
+  step list), merge, render, collider, recolor, engines probe, training jobs,
+  and the Worlds ledger. GPU viewport draws through the same `LiveScene` as headless
   `render`; orbit drag, wheel zoom, double-click reset.
 - L3 honesty: "Export Video" is refused with a message (render writes PNG
   stills only); the Worlds panel never passes `confirm_spend`; SH rotation
@@ -55,20 +62,22 @@ generate, and train splats without moving secrets through the LLM context.
   with a vector sun/moon toggle (no tofu glyphs), `Ctrl+wheel` zoom, and a
   `glyph_allowlist` + `check_string_for_tofu` test pair.
 - `--smoke` covers menu-dispatch parity, the tofu guard, and an end-to-end
-  synth -> convert -> inspect -> edit -> merge -> worlds-ledger run; `render`
-  passes either as a PNG or as a clean `unsupported` skip with no GPU.
+  synth -> convert -> inspect -> edit -> merge -> worlds-ledger -> mesh ->
+  recolor-recipe run; `render` passes either as a PNG or as a clean
+  `unsupported` skip with no GPU.
 
 ## 3. Non-goals
 
 No SH rotation math before `reduce_sh`; no live Marble spend without owner
 confirmation; no committed binaries or engines in the repo
 (`SPLATCRAFT_TOOLS` lives outside, Goliath default `D:\Dev\tools\splatcraft`);
-no second trainer before Brush flags are stable.
+no second trainer before Brush flags are stable; no NSIS installer. The
+release is the two executables and the portable zip.
 
 ## 4. Rules (from AGENTS.md, binding here too)
 
-LF line endings only; no em dashes in docs, code, or commits; realistic
-day-scale timelines; single trunk `master` (short-lived `agent/<task>`
+LF line endings only; no em dashes in docs, code, or commits; a plan row is
+about an hour of agent work; single trunk `master` (short-lived `agent/<task>`
 branches only, merged and deleted same day); install requests follow
 `INSTALL.md` agent steps exactly.
 
@@ -78,20 +87,17 @@ branches only, merged and deleted same day); install requests follow
 `splatcraft --smoke`. `just ci` runs the first three. Render tests skip
 with a stderr note when no GPU adapter exists.
 
-## 6. UI/UX Architecture & Menu Bar Standard
+## 6. UI/UX Architecture and Menu Bar
 
-In accordance with [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md):
-- **Pattern 2 (Viewport-Centric Craft Workstation):** Persistent 3D Gaussian Splatting viewport (`LiveScene` wgpu 3dgs renderer) with surrounding camera controls, orbit gizmos, and point-cloud inspectors. Top quick button row acts as accelerators into the `View` menu. To add a new splat tool or training panel:
-  1. Register a visibility toggle in the `View` or `Window` menu.
-  2. Add an entry in the sidebar Transform / Filter toolbox.
-  3. Wire the action directly into the universal `Command::dispatch` bus.
-- **Top Menu Bar Hierarchy:**
-  - `File`: New Scene (`Ctrl+N`), Open Splat PLY/SPZ (`Ctrl+O`), Open Recent ▸, Save (`Ctrl+S`), Save As... (`Ctrl+Shift+S`), Export Still / Video (`Ctrl+E`), Close (`Ctrl+W`), Quit (`Ctrl+Q`).
-  - `Edit`: Undo (`Ctrl+Z`), Redo (`Ctrl+Y`), Cut, Copy, Paste, Select All, Preferences (`Ctrl+,`).
-  - `View`: 3D Splat Viewport, Orbit Camera HUD, Point Cloud Density Inspector, Training Jobs Monitor, Marble Worlds Ledger, Theme (`Dark`/`Light`).
-  - `Insert`: Import Additional Splat (Merge), Add Bounding Crop Box, Load Camera Path, Add Training Footage.
-  - `Modify`: Crop Selection, Prune Low-Opacity Splats, Transform (Translate/Rotate/Scale), Reduce SH Degree.
-  - `Commands`: Run Headless Render, Plan Training Job (COLMAP/Brush), Convert PLY <-> SPZ, Check Marble Credits, Cancel Training Job.
-  - `Window`: Reset Layout, 3D Viewport, Job Supervisor Drawer, Inspector Dock.
-  - `Help` (Mandatory 5-Dialog Suite): `Command Palette...` (`Ctrl+K`), `Keyboard Shortcuts...` (`F1`), `Project Files & Docs...`, `Licenses & Notices...`, `About SplatCraft`.
-- **Behavioral Mechanics:** Smooth `switch_on_hover` between top-level menus, zero-unsafe immediate-mode rendering, and headless `--smoke` parity.
+The shell follows the Craft 8-menu bar. The bus is `dispatch(op, args)`. There is no `Command` enum. To add a tool: a View or Window toggle when it is a panel, a toolbox or inspector control, then a real op.
+
+- `File`: New Synthetic Scene (status text), Open Splat PLY/SPZ (`Ctrl+O`, loads the viewport), Open Recent, Save Converted Copy (`Ctrl+S`, runs `convert`), Save As (status text), Export Still PNG (`Ctrl+E`, runs `render`), Export Video (status text: PNG stills only), Close Scene (`Ctrl+W`), Quit (`Ctrl+Q`).
+- `Edit`: Undo (`Ctrl+Z`) and Redo (`Ctrl+Y`) restore path fields and the result text. Cut and Copy move the result text. Paste Path is status text. Select All Panels shows the docks. Preferences (`Ctrl+,`).
+- `View`: toggles for the viewport, toolbox, inspector, engines, training jobs, and Marble worlds. Reset Camera. Theme Dark or Light.
+- `Insert`: Import Additional Splat, Load Camera Path, and Add Training Footage set status text. Add Bounding Crop Box appends a crop step.
+- `Modify`: Crop, Prune, Transform, and Reduce SH append steps. Clear Edit Steps empties the list. Run Edit Pipeline calls `edit`.
+- `Commands`: Run Headless Render, Plan Training Job, Convert PLY to SPZ, Build Collision Mesh (`mesh`), Recolor Grey Splats (`recolor`), Check Marble Credits, Cancel Training Job.
+- `Window`: Reset Layout, plus toggles labelled 3D Viewport, Job Supervisor Drawer (the toolbox), and Inspector Dock.
+- `Help`: Command Palette (`Ctrl+K`), Keyboard Shortcuts (`F1`), Project Files and Docs, Licenses and Notices, About SplatCraft.
+
+Hover-switching between open menus is not implemented (`switch_on_hover_note` is empty). `--smoke` checks that `mesh`, `recolor`, and `recipe` are on the bus.

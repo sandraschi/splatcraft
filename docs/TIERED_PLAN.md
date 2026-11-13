@@ -2,16 +2,16 @@
 
 **Parent Standard:** [`RUST_ARTCRAFT_STANDARD.md`](../../mcp-central-docs/standards/RUST_ARTCRAFT_STANDARD.md)  
 **Menu Bar Standard:** [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md)  
-**Architecture Model:** 4-Tier ArtCraft Incremental Delivery  
-**Status:** Active  
+**Architecture Model:** Fleet scorecard is 4 tiers. This repo adds Tier 5.  
+**Status:** Active. Tier 4 is closed. Tier 5 is next. One tier is about an hour of agent work.  
 
 ---
 
 ## Architecture Flow
 
 ```
-Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──> Tier 4: Menu Bar, Help & Packaging
-(splatcraft-core)      (splatcraft-mcp)      (splatcraft-app)      (Hardened Workstation)
+Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──> Tier 4: Menu Bar, Help & Packaging ──> Tier 5: Mesh, Recolor, Recipes
+(splatcraft-core)      (splatcraft-mcp)      (splatcraft-app)      (plain exes + portable zip)             (collider, texturecraft, democraft)
 ```
 
 ---
@@ -19,7 +19,7 @@ Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──>
 ## Tier Specifications
 
 ### Tier 1 - Core Splat Codecs & Ops (`splat-formats`, `splat-ops`, `splatcraft-core`)
-- [x] L1 `Command::dispatch` universal 3DGS execution bus.
+- [x] L1 `dispatch(op, args)` universal 3DGS execution bus.
 - [x] Binary PLY reader/writer (3DGS layout, SH degree 0-3).
 - [x] SPZ v2/v3 compressed format support.
 - [x] Geometric operations: crop bounding box, prune opacity, affine transforms, merge.
@@ -45,6 +45,10 @@ Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──>
 - [x] Tofu Guard verification (100% font glyph coverage, zero tofu placeholder boxes).
 - [x] Headless `--smoke` parity validation (menu parity, tofu guard, synth/convert/inspect/edit/merge/worlds ledger).
 - [x] Standalone release packaging: plain exes, launcher portable zip, `.mcpb`, `SHA256SUMS` (`scripts/release.ps1`).
-- [ ] NSIS installer wired into `scripts/release.ps1`. `craft.config.psd1` says `Installer = $true` and
-      `installer/craft-installer.nsi` + `makensis` are present, but the vendored script here was cut down
-      and states "no NSIS installer", so no `<name>-<version>-setup.exe` is produced today.
+- [x] No NSIS setup.exe. The release is the two exes plus the portable zip. The app does not need an installer.
+
+### Tier 5 - Local collision mesh, texturecraft recolor, and democraft recipes
+- [x] Collision mesh generated from the splat in this repo (`mesh`, GLB box). Marble's downloaded collider stays a fetch asset.
+- [x] Texturecraft bridge so grey splats can be recolored (`recolor` writes `*.texturecraft.json`).
+- [x] Recolor recipes for grey splats: `ghibli`, `cyberpunk`, `ova`.
+- [x] Democraft recipes: `recipe info`, `recipe convert`, `recipe collider`, `recipe recolor`.
