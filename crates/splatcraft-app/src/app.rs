@@ -57,6 +57,8 @@ pub struct SplatApp {
     // Viewport.
     view: View,
     loaded: Option<usize>,
+    /// Set when `--open` supplied a path. Cleared after the first upload attempt.
+    pending_open: bool,
     viewport_note: String,
     last_inspect: Option<Value>,
     // Edit pipeline builder.
@@ -132,6 +134,7 @@ impl Default for SplatApp {
             show_worlds: true,
             view: View::default(),
             loaded: None,
+            pending_open: false,
             viewport_note: String::new(),
             last_inspect: None,
             crop_min: [-3.0, -3.0, -3.0],
@@ -179,9 +182,15 @@ impl Default for SplatApp {
 }
 
 impl SplatApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, open: Option<String>) -> Self {
         apply_theme(&cc.egui_ctx, true);
-        Self::default()
+        let mut app = Self::default();
+        if let Some(path) = open.filter(|p| !p.is_empty()) {
+            app.path = path;
+            app.pending_open = true;
+            app.status_text = format!("Opening {}", app.path);
+        }
+        app
     }
 
     fn push_undo(&mut self, label: &str) {
@@ -1531,6 +1540,10 @@ fn pretty(r: splatcraft_core::Result<Value>) -> String {
 
 impl eframe::App for SplatApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        if self.pending_open && frame.wgpu_render_state().is_some() {
+            self.pending_open = false;
+            self.load_scene(frame);
+        }
         handle_zoom(ui.ctx());
         // Global shortcuts.
         ui.ctx().input(|i| {

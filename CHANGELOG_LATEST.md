@@ -3,6 +3,13 @@
 First release. Pure-Rust Gaussian splat toolkit on the ArtCraft 3-tier pattern (core, MCP, app).
 Windows x64 only for now.
 
+## Real capture still (2026-11-14)
+
+- Headless `render` drew Marcel Padilla's houseplant capture (CC-BY-4.0, 113,648 splats, SH degree 0) to a 1280x960 PNG. Front view yaw 18, pitch -8, covered_fraction 0.291. The still is `docs/screenshots/plant-front.png`.
+- The ply and a second angle stay outside the repo at `D:\Dev\tools\splatcraft\scans\plant\` (`plant.ply`, `plant-quarter.png`). The source `.splat` is the antimatter15 32-byte layout, converted to a degree-0 3DGS PLY. Positions were left in the capture frame.
+- This is a published capture rendered locally. No new COLMAP or Brush training run was started.
+- With `SPLATCRAFT_TOOLS=D:\Dev\tools\splatcraft`, brush and colmap report up. ffmpeg and bunx are up. ns-train and splat-transform are down.
+
 ## Tier 5 mesh, recolor, recipes (2026-11-13)
 
 - `mesh` writes a GLB box collider from the finite positions in a `.ply` or `.spz` file. Marble's downloaded collider is unchanged.
@@ -48,8 +55,9 @@ Windows x64 only for now.
 ## Known limits (read before relying on it)
 
 - No live Marble call has been made; the client is tested against a fake transport only.
-- No real video-to-splat run has completed yet; the pipeline is tested with real processes and
-  planned against real Brush 0.3.0 and COLMAP 4.2.1, but not run end to end.
+- A published real capture has been rendered to PNG (see above). No local video-to-splat
+  training run has completed; the pipeline is tested with real processes and planned against
+  real Brush 0.3.0 and COLMAP 4.2.1, but not run end to end.
 - SH rotation is not implemented; rotating splats with SH degree > 0 is refused.
 - Viewport mouse feel and surface colour have not been judged by eye.
 - External engines (ffmpeg, COLMAP, Brush) are not bundled. Point `SPLATCRAFT_TOOLS` at them.

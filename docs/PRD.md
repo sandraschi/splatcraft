@@ -28,7 +28,9 @@ generate, and train splats without moving secrets through the LLM context.
   run `reduce_sh` to degree 0 first.
 - `merge`: 2-64 files, mixed PLY/SPZ, SH reduced to the lowest degree.
 - `render`: headless GPU PNG still (opaque black); `unsupported` with no
-  GPU adapter.
+  GPU adapter. A published capture (Marcel Padilla houseplant, CC-BY-4.0,
+  113,648 splats, SH degree 0) has been drawn to
+  `docs/screenshots/plant-front.png`. A local training run has not.
 - `worlds`: Marble ledger/credits/generate/status/fetch/list behind a
   `Transport` trait; scripted fake only, no live call yet. Spend guard:
   dry run unless `confirm_spend` is true, JSONL ledger after POST, cap
