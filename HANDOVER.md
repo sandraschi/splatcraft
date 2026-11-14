@@ -2,57 +2,34 @@
 
 Written for the next agent. Plain markdown, no assumed context.
 
-**Last touched:** 2026-11-13
-**Trunk:** `master`, code commit `29b7fb7` (Tier 5 mesh, recolor, recipe).
+**Last touched:** 2026-11-14
+**Trunk:** `master`, docs commit `1e3a85a` (Tier 5 recorded, menu bar matches the app). Code commit `29b7fb7` (mesh, recolor, recipe). The houseplant still is a docs addition on top of that, not yet committed.
 
 ## What was being worked on
 
-Bringing the L3 desktop app up to Craft app standards. The app was a runt: five
-buttons (`Load / Inspect / Convert / Engines / Status`) in a single
-`CentralPanel`, while the PRD promised a full Pattern 2 workstation and the
-Tiered Plan had all six Tier 4 boxes unchecked.
+Tier 5 is in the tree and pushed. The follow-up was a visible splat: the 24-splat recipe fixtures were rejected as too small. A published real capture was converted and rendered on the GPU.
 
 ## Last concrete action
 
-Rewrote `crates/splatcraft-app/src/app.rs` and `main.rs`:
+2026-11-14, release CLI (the sandbox build, not `D:\Dev\repos\splatcraft\target\release`):
 
-- Universal 8-menu bar (`File Edit View Insert Modify Commands Window Help`),
-  each item calling `splatcraft_core::dispatch`.
-- 5-dialog Help suite (Command Palette `Ctrl+K`, Shortcuts `F1`, Project Docs,
-  Licenses, About) plus Preferences.
-- Left Toolbox: inspect, convert, synth, edit-pipeline builder (crop / prune /
-  transform / reduce_sh, visible step list), merge, render.
-- Right Inspector: scene density + SH telemetry, engines probe, training jobs
-  (plan/start/status/log/cancel/list), Marble Worlds (ledger/credits/generate/
-  status/fetch/list).
-- `harsh_visuals` / `crisp_light_visuals`, vector sun/moon toggle, `Ctrl+wheel`
-  zoom, `Ctrl+O/S/E/K/Z/Y`.
-- `--smoke` extended: menu-dispatch parity, tofu guard, and an end-to-end
-  synth -> convert -> inspect -> edit -> merge -> worlds-ledger run.
-- New tests: `glyph_allowlist`, `check_string_for_tofu`.
+- Downloaded Marcel Padilla's houseplant capture, CC-BY-4.0, `source_method: capture`, 113,648 splats, SH degree 0. File `plant.splat` is 3,636,736 bytes (antimatter15 layout, 32 bytes per gaussian) from `github.com/marcelpadilla/splats`.
+- Converted it to a degree-0 3DGS PLY: log scales, SH DC from RGB, opacity logit, quaternion `rot_0..3`. Positions were left in the capture frame. Negating Y put the pot on the ceiling; the renderer already shows this frame upright.
+- `inspect`: 113,648 splats, 0 non-finite, mean opacity 0.245, bbox about 0.52 x 1.00 x 0.61.
+- `render` 1280x960, opaque black, auto-framed. Front yaw 18 pitch -8, covered_fraction 0.291, 499,032 bytes. Quarter yaw 55 pitch -6, covered_fraction 0.278.
+- Front still copied to `docs/screenshots/plant-front.png`. Ply and quarter still stay at `D:\Dev\tools\splatcraft\scans\plant\`.
+- Engines with `SPLATCRAFT_TOOLS=D:\Dev\tools\splatcraft`: brush `D:\Dev\tools\splatcraft\brush\brush_app.exe` up, colmap `D:\Dev\tools\splatcraft\colmap\bin\colmap.exe` up, ffmpeg and bunx up, ns-train and splat-transform down.
+- CLI used: `C:\Users\sandr\AppData\Local\Temp\cursor-sandbox-cache\0ec55dc8eff576534c15bba334c805fe\cargo-target\release\splatcraft-cli.exe`.
 
-Gates run and green on 2026-11-13: `cargo fmt --all --check`, `cargo clippy
---workspace --all-targets --all-features -- -D warnings`, `cargo test
---workspace` (all suites), `cargo build --release --workspace`,
-`target\release\splatcraft.exe --smoke` -> `smoke: PASS` (render produced a real
-PNG on this machine's GPU).
-
-Tier 5 is commit `29b7fb7`: `mesh`, `recolor`, `recipe`,
-toolbox and Commands entries, and a fourth democraft demo `recolor-grey`.
-Checked with `cargo fmt --all --check`, clippy `-D warnings` on the touched
-crates, and `cargo test` for splat-ops, splatcraft-core, splatcraft-mcp, and
-the app. A full workspace clippy and release smoke were not re-run after Tier 5.
+Release build and `--smoke` on that sandbox target passed earlier the same night (13 ops, real PNG). `D:\Dev\repos\splatcraft\target\release\splatcraft.exe` is older (2026-11-13) and still reports 10 ops. Do not smoke that copy.
 
 ## Next step
 
-Tier 5 is in the tree: `mesh` (GLB box), `recolor` (ghibli / cyberpunk / ova plus
-`*.texturecraft.json`), and `recipe info|convert|collider|recolor`. Democraft's
-splat demos call those recipe verbs and write into the demo directory. NSIS stays
-out. PRD section 6 still describes a celcraft document menu. Eye-check the
-viewport, and run one real training clip, when those are the job.
+Eye-check the viewport against `docs/screenshots/plant-front.png`: load `D:\Dev\tools\splatcraft\scans\plant\plant.ply`, reset camera, compare orbit and colour. A local training run still needs an orbit photo set. The YCB clamp zip that was sized (`19_large_clamp.zip`) is 2.4 GB; do not start it without a size decision. Brush on a 4070 Ti class GPU is on the order of tens of minutes at 30k steps.
 
 ## Deliberately not done
 
+- **No new scan trained here.** The stills are a published capture rendered locally. COLMAP and Brush were probed, not launched.
 - **No fal.ai integration.** Rejected on purpose. Marble returns Gaussian
   splats; fal.ai's 3D endpoints are mesh generators (TRELLIS/Hunyuan3D class).
   The zero-marginal-cost path already exists locally in `splat-train`
@@ -66,6 +43,10 @@ viewport, and run one real training clip, when those are the job.
   true, and the UI never sets it.
 - **No SH rotation.** Rotating splats with SH degree > 0 is still refused; run
   `reduce_sh` to 0 first. Surfaced as a hint in the Toolbox, not hidden.
+- **Democraft edits are uncommitted** on `agent/opencode-stripe-reconcile`
+  (`src/democraft_mcp/crafts.py`, `recipes.py`: recipe `--out` writes into the
+  demo dir, plus a `recolor-grey` demo). Do not commit them onto that branch.
+  `main` is a different history.
 
 ## Traps
 
@@ -80,5 +61,12 @@ viewport, and run one real training clip, when those are the job.
   `#![allow]` them locally - the app test module does.
 - Every file is LF. `.gitattributes` enforces it; check `git ls-files --eol`
   shows `w/lf` after any bulk write.
-- README.md carries a pre-existing uncommitted badge block (CRLF warning). It
-  was left untouched on purpose.
+- `SPLATCRAFT_TOOLS` must be set. The default `./tools` does not see
+  `D:\Dev\tools\splatcraft`, so brush and colmap report down while the exes
+  are on disk.
+- PowerShell eats a bare negative number: `--pitch-deg -8` fails as an
+  unexpected argument. Pass `--pitch-deg=-8`.
+- Native formats are `.ply` and `.spz` only. An antimatter15 `.splat` has to
+  be converted first. Do not negate Y for this houseplant; the renderer
+  already frames it upright.
+- The app package name is `splatcraft`, not `splatcraft-app`.

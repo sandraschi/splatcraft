@@ -3,7 +3,7 @@
 **Parent Standard:** [`RUST_ARTCRAFT_STANDARD.md`](../../mcp-central-docs/standards/RUST_ARTCRAFT_STANDARD.md)  
 **Menu Bar Standard:** [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md)  
 **Architecture Model:** Fleet scorecard is 4 tiers. This repo adds Tier 5.  
-**Status:** Active. Tier 4 is closed. Tier 5 is next. One tier is about an hour of agent work.  
+**Status:** Active. Tier 4 and Tier 5 are closed. A local training run is still open. One tier is about an hour of agent work.  
 
 ---
 
@@ -52,3 +52,7 @@ Tier 1: Core Engine ──> Tier 2: MCP / CLI ──> Tier 3: Desktop UI ──>
 - [x] Texturecraft bridge so grey splats can be recolored (`recolor` writes `*.texturecraft.json`).
 - [x] Recolor recipes for grey splats: `ghibli`, `cyberpunk`, `ova`.
 - [x] Democraft recipes: `recipe info`, `recipe convert`, `recipe collider`, `recipe recolor`.
+
+## Shown after the tiers
+
+On 2026-11-14 the release CLI rendered Marcel Padilla's houseplant capture (CC-BY-4.0, 113,648 splats, SH degree 0) to `docs/screenshots/plant-front.png`. The ply and a second angle are outside the repo at `D:\Dev\tools\splatcraft\scans\plant\`. Brush and COLMAP are present when `SPLATCRAFT_TOOLS` points at `D:\Dev\tools\splatcraft`. A local training run from an orbit photo set has not been started. Viewport eye-check against that still is still open.

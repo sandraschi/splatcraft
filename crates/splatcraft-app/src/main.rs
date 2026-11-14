@@ -10,13 +10,30 @@
 
 mod app;
 
+fn open_arg(args: &[String]) -> Option<String> {
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        if a == "--open" {
+            return it.next().filter(|p| !p.is_empty()).cloned();
+        }
+        if let Some(rest) = a.strip_prefix("--open=") {
+            if !rest.is_empty() {
+                return Some(rest.to_string());
+            }
+        }
+    }
+    None
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
-        eprintln!("usage: splatcraft [--smoke]");
-        eprintln!("  --smoke   headless checks, exit 0 on success");
+        eprintln!("usage: splatcraft [--smoke] [--open PATH]");
+        eprintln!("  --smoke      headless checks, exit 0 on success");
+        eprintln!("  --open PATH  load a .ply or .spz into the viewport");
         return;
     }
+    let open = open_arg(&args);
     if args.iter().any(|a| a == "--smoke") {
         match app::run_smoke_checks() {
             Ok(lines) => {
@@ -32,8 +49,10 @@ fn main() {
         }
         return;
     }
+    let open_path = open.clone();
     let mut options = eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
+        viewport: eframe::egui::ViewportBuilder::default().with_inner_size([1400.0, 900.0]),
         ..Default::default()
     };
     // The splat viewer needs the adapter's real limits (large storage buffers),
@@ -49,8 +68,8 @@ fn main() {
         "splatcraft",
         options,
         Box::new(
-            |cc| -> Result<Box<dyn eframe::App>, Box<dyn std::error::Error + Send + Sync>> {
-                Ok(Box::new(app::SplatApp::new(cc)))
+            move |cc| -> Result<Box<dyn eframe::App>, Box<dyn std::error::Error + Send + Sync>> {
+                Ok(Box::new(app::SplatApp::new(cc, open_path.clone())))
             },
         ),
     );

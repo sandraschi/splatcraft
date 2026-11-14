@@ -24,7 +24,7 @@ Desktop, build from source, manual MCP config. mcpb is not Python-only; its mani
 packed, not yet install-tested in Claude Desktop). Training additionally needs ffmpeg, COLMAP
 and Brush, which are not bundled.
 
-**Status: Tier 5 code complete, first real training run pending.** What works today, and
+**Status: Tier 5 code complete. A published 113,648-splat capture has been rendered to PNG. A first local training run is still pending.** What works today, and
 nothing else is claimed:
 
 - Read and write binary PLY (3DGS layout, SH degree 0 to 3).
@@ -39,7 +39,10 @@ nothing else is claimed:
   is not built; run `reduce_sh` to degree 0 first.
 - `merge`: 2 to 64 files, mixed PLY/SPZ, frames unified, SH reduced to the lowest degree.
 - `render`: headless GPU PNG still (wgpu-3dgs-viewer, auto-framed orbit camera, opaque black
-  background). Reports `unsupported` when no GPU adapter exists.
+  background). Reports `unsupported` when no GPU adapter exists. On 2026-11-14 this drew
+  Marcel Padilla's houseplant capture (CC-BY-4.0, 113,648 splats) to
+  `docs/screenshots/plant-front.png`. That file is a published capture rendered here, not a
+  scan trained on this machine.
 - `worlds`: World Labs Marble client (absorbs worldlabs-mcp): `ledger`, `credits`, `generate`,
   `status` (optional wait), `fetch` (SPZ splats, collider mesh, pano, thumbnail), `list`.
   Request shapes follow the working Python bridge. Tested against a scripted fake transport
@@ -95,7 +98,9 @@ Nerfstudio (Python) and splat-transform (via bunx) are only detected, never requ
 Where the tools are found (first hit wins): env override `SPLATCRAFT_BRUSH`, `_NS_TRAIN`,
 `_COLMAP`, `_FFMPEG`, `_FFPROBE`, `_SPLAT_TRANSFORM`, `_BUNX` (a set but wrong override means
 "not found", no fallback), then PATH, then the tools dir `SPLATCRAFT_TOOLS` (default
-`./tools`; `<tool>/bin` then `<tool>`). `SPLATCRAFT_CLI` overrides the supervisor binary.
+`./tools`; `<tool>/bin` then `<tool>`). On this machine the tools dir is
+`D:\Dev\tools\splatcraft` (brush, colmap). Without `SPLATCRAFT_TOOLS` those two report down
+even though the files are there. ffmpeg is on PATH. `SPLATCRAFT_CLI` overrides the supervisor binary.
 
 `mesh` writes a GLB box collider from the finite positions in a splat file. `recolor`
 tints near-grey splats with `ghibli`, `cyberpunk`, or `ova` and writes a texturecraft

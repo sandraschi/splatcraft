@@ -36,14 +36,18 @@ for the same scene and camera.
 ## 3. Current status
 
 Viewport compiles, app starts on the wgpu backend, shared scene path
-passes the GPU render test. Mouse feel and window-surface color are not
-yet eye-judged. This file is the bar that judgment must clear.
+passes the GPU render test. Headless `render` of a real 113,648-splat
+capture is `docs/screenshots/plant-front.png` (1280x960, yaw 18, pitch -8,
+opaque black, covered_fraction 0.291). Mouse feel and window-surface
+color are not yet eye-judged against that still. This file is the bar
+that judgment must clear.
 
 ## 4. Screenshots
 
-`docs/screenshots/` (to be added at eye-judgment):
+`docs/screenshots/`:
 
-- `viewport-orbit.png` - loaded splat, reset camera.
-- `render-reference.png` - headless `render` of the same scene.
+- `plant-front.png` - headless `render` of the published houseplant
+  capture. Source ply is `D:\Dev\tools\splatcraft\scans\plant\plant.ply`.
+- `viewport-orbit.png` - loaded splat, reset camera. Not taken yet.
 - `engines-panel.png` - `engine_status` rows for brush, ns-train, colmap,
-  ffmpeg, splat-transform, bunx.
+  ffmpeg, splat-transform, bunx. Not taken yet.
