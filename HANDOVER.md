@@ -3,7 +3,7 @@
 Written for the next agent. Plain markdown, no assumed context.
 
 **Last touched:** 2026-11-14
-**Trunk:** `master`, docs commit `1e3a85a` (Tier 5 recorded, menu bar matches the app). Code commit `29b7fb7` (mesh, recolor, recipe). The houseplant still is a docs addition on top of that, not yet committed.
+**Trunk:** `master` at `d5a3ec1` (open a splat on launch, houseplant still). A `trellis` command for one photo to a TRELLIS.2 GLB is in the working tree and not committed.
 
 ## What was being worked on
 
@@ -25,17 +25,17 @@ Release build and `--smoke` on that sandbox target passed earlier the same night
 
 ## Next step
 
+`trellis` plans a single photo into a textured GLB. It has not been run: the official TRELLIS.2 install is Linux with a 24GB NVIDIA GPU, and this machine has not imported `trellis2`. `action=plan` with a real photo is the check. The viewport still does not open GLB.
+
 Eye-check the viewport against `docs/screenshots/plant-front.png`: load `D:\Dev\tools\splatcraft\scans\plant\plant.ply`, reset camera, compare orbit and colour. A local training run still needs an orbit photo set. The YCB clamp zip that was sized (`19_large_clamp.zip`) is 2.4 GB; do not start it without a size decision. Brush on a 4070 Ti class GPU is on the order of tens of minutes at 30k steps.
 
 ## Deliberately not done
 
 - **No new scan trained here.** The stills are a published capture rendered locally. COLMAP and Brush were probed, not launched.
-- **No fal.ai integration.** Rejected on purpose. Marble returns Gaussian
-  splats; fal.ai's 3D endpoints are mesh generators (TRELLIS/Hunyuan3D class).
-  The zero-marginal-cost path already exists locally in `splat-train`
-  (ffmpeg + COLMAP + Brush on the RTX 4090) and in the sibling
-  `splatmaker-mcp`. A third paid backend with no splat-native output is not
-  worth the key management or the spend surface.
+- **No fal.ai integration.** Local TRELLIS.2 is the single-photo path
+  (`trellis` plan/start, output is a textured GLB, not a splat). The official
+  install is Linux with a 24GB NVIDIA GPU and `microsoft/TRELLIS.2-4B`.
+  A video orbit still goes through ffmpeg, COLMAP and Brush.
 - **No video export.** `crates/splatcraft-core/src/render.rs` writes PNG stills
   only. The File menu item says so explicitly instead of pretending.
 - **No live Marble call.** `splat-worlds` is still tested against the fake

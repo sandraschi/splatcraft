@@ -16,6 +16,7 @@ pub mod render;
 pub mod secrets;
 pub mod studio;
 pub mod train;
+pub mod trellis;
 pub mod worlds;
 
 /// Tests that change process environment variables take this lock.
@@ -53,6 +54,7 @@ pub const OPS: &[&str] = &[
     "mesh",
     "recolor",
     "recipe",
+    "trellis",
 ];
 
 /// Run `op` with JSON `args`. The only function front ends need.
@@ -71,6 +73,7 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "mesh" => studio::mesh_op(args),
         "recolor" => studio::recolor_op(args),
         "recipe" => studio::recipe_op(args),
+        "trellis" => trellis::trellis(args),
         other => Err(Error::Invalid(format!(
             "unknown op '{other}' (known: {})",
             OPS.join(", ")

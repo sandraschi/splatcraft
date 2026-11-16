@@ -52,12 +52,12 @@ pub fn find_tools() -> Tools {
     }
 }
 
-fn abs(p: PathBuf) -> Result<PathBuf> {
+pub(crate) fn abs(p: PathBuf) -> Result<PathBuf> {
     std::path::absolute(&p)
         .map_err(|e| Error::Io(format!("cannot make '{}' absolute: {e}", p.display())))
 }
 
-fn opt_str<'a>(args: &'a Value, key: &str) -> Result<Option<&'a str>> {
+pub(crate) fn opt_str<'a>(args: &'a Value, key: &str) -> Result<Option<&'a str>> {
     if args.get(key).is_none_or(Value::is_null) {
         Ok(None)
     } else {
@@ -65,7 +65,7 @@ fn opt_str<'a>(args: &'a Value, key: &str) -> Result<Option<&'a str>> {
     }
 }
 
-fn uint(args: &Value, key: &str, default: u32) -> Result<u32> {
+pub(crate) fn uint(args: &Value, key: &str, default: u32) -> Result<u32> {
     match args.get(key) {
         None | Some(Value::Null) => Ok(default),
         Some(v) => v
@@ -75,7 +75,7 @@ fn uint(args: &Value, key: &str, default: u32) -> Result<u32> {
     }
 }
 
-fn clean(name: &str) -> String {
+pub(crate) fn clean(name: &str) -> String {
     let c: String = name
         .chars()
         .map(|c| {
@@ -195,7 +195,7 @@ fn describe(p: &Plan) -> Vec<Value> {
         .collect()
 }
 
-fn supervisor_exe() -> Result<PathBuf> {
+pub(crate) fn supervisor_exe() -> Result<PathBuf> {
     if let Some(p) = std::env::var_os("SPLATCRAFT_CLI").filter(|v| !v.is_empty()) {
         return Ok(PathBuf::from(p));
     }
@@ -233,7 +233,7 @@ fn detach(cmd: &mut Command, breakaway: bool) {
 #[cfg(not(windows))]
 fn detach(_cmd: &mut Command, _breakaway: bool) {}
 
-fn spawn_supervisor(exe: &Path, dir: &Path) -> Result<()> {
+pub(crate) fn spawn_supervisor(exe: &Path, dir: &Path) -> Result<()> {
     let log = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
