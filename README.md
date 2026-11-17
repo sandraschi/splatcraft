@@ -9,14 +9,15 @@ Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.
 
 ## Install
 
-**Easiest: tell Claude.** In Claude Code (or any coding agent with a shell) say:
+Tell Cursor, Claude, Antigravity, or OpenCode: **Install this.**
 
-> Install splatcraft from github.com/sandraschi/splatcraft
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-craft.ps1
+```
 
-The agent follows the "Agent install steps" in [INSTALL.md](INSTALL.md): it checks for a
-release, otherwise builds from source with Rust, registers the MCP server, and verifies it.
-It asks before installing anything large. Until the first GitHub release exists, this means a
-source build (needs the Rust toolchain).
+Installs the Windows app, the CLI, and the MCP bundle.
+
+That registers the MCP server in each of those that is installed. More paths: [INSTALL.md](INSTALL.md).
 
 Other ways, all detailed in [INSTALL.md](INSTALL.md): prebuilt zip, MCPB bundle for Claude
 Desktop, build from source, manual MCP config. mcpb is not Python-only; its manifest supports
@@ -55,6 +56,7 @@ nothing else is claimed:
 - `recolor`: tints near-grey splats with `ghibli`, `cyberpunk`, or `ova` and writes a
   texturecraft bridge JSON beside the output. Saturated splats are unchanged.
 - `recipe`: offline democraft runs `info`, `convert`, `collider`, and `recolor`.
+- `trellis`: one object photo to a TRELLIS.2 textured GLB (`plan` is dry, `start` is a detached job). Resolution 512, 1024, or 1536. This is a mesh, not a splat, so the viewport does not open it. The official model install is Linux with a 24GB NVIDIA GPU. `SPLATCRAFT_TRELLIS2` can point at another runner with the same arguments. fal.ai is not used.
 - Live viewport in the egui app: type a path, press Load, drag to orbit, wheel to zoom,
   double-click to reset. It draws through an egui-wgpu paint callback using the same
   `LiveScene` code as the headless `render`. Verified so far: it compiles, the app starts on
@@ -122,6 +124,7 @@ cargo run -p splatcraft-mcp -- mesh --input a.ply --output a.glb
 cargo run -p splatcraft-mcp -- recolor --input a.ply --output tinted.ply --recipe ghibli
 cargo run -p splatcraft-mcp -- recipe collider --out ./out
 cargo run -p splatcraft-mcp -- train --args "@plan.json"   # {"action":"plan","video":"clip.mp4","output":"out.ply"}
+cargo run -p splatcraft-mcp -- trellis --args "@photo.json" # {"action":"plan","image":"object.png","resolution":512}
 cargo run -p splatcraft-mcp -- mcp        # MCP stdio server
 cargo run -p splatcraft --bin splatcraft  # desktop host
 ```
@@ -131,7 +134,7 @@ which strips inner double quotes).
 
 MCP tools: `splat_inspect`, `splat_convert`, `splat_edit`, `splat_merge`, `splat_render`,
 `splat_worlds`, `splat_train`, `splat_engine_status`, `splat_mesh`, `splat_recolor`,
-`splat_recipe`, `splat_synth`.
+`splat_recipe`, `splat_trellis`, `splat_synth`.
 Set `SPLATCRAFT_ROOT` to confine all paths to a directory.
 
 ## Plan (one row is about an hour of agent work)
