@@ -24,7 +24,7 @@ so tools that write files must emit LF. After bulk writes, check:
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
 
 CLI, MCP and app share `dispatch`. Never put logic in a front end.
-Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train, mesh, recolor, recipe.
+Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train, mesh, recolor, recipe, trellis.
 
 ## Rules
 

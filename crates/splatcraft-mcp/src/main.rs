@@ -94,6 +94,13 @@ enum Cmd {
         #[arg(long)]
         args: String,
     },
+    /// One photo to a TRELLIS.2 textured GLB. Takes JSON args (inline or
+    /// @file.json), e.g. '{"action":"plan","image":"object.png"}'.
+    /// The result is a mesh, not a splat.
+    Trellis {
+        #[arg(long)]
+        args: String,
+    },
     /// Manage stored secrets (API keys). Typed by the owner; never exposed over MCP.
     Secret {
         #[command(subcommand)]
@@ -301,6 +308,16 @@ fn main() {
         ),
         Cmd::Worlds { args } => match read_steps(&args) {
             Ok(v) => run("worlds", v),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": format!("--args is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
+                );
+                1
+            }
+        },
+        Cmd::Trellis { args } => match read_steps(&args) {
+            Ok(v) => run("trellis", v),
             Err(e) => {
                 println!(
                     "{}",
