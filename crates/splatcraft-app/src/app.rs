@@ -88,6 +88,8 @@ pub struct SplatApp {
     synth_degree: String,
     synth_seed: String,
     recolor_recipe: String,
+    trellis_image: String,
+    trellis_resolution: String,
     // Worlds panel.
     worlds_action: String,
     worlds_prompt: String,
@@ -160,6 +162,8 @@ impl Default for SplatApp {
             synth_degree: "0".to_string(),
             synth_seed: "1".to_string(),
             recolor_recipe: "ghibli".to_string(),
+            trellis_image: String::new(),
+            trellis_resolution: "512".to_string(),
             worlds_action: "ledger".to_string(),
             worlds_prompt: String::new(),
             worlds_kind: "text".to_string(),
@@ -404,6 +408,23 @@ impl SplatApp {
         ) {
             Ok(v) => self.set_result("mesh", v),
             Err(e) => self.set_error("mesh", e),
+        }
+    }
+
+    fn do_trellis(&mut self, action: &str) {
+        self.push_undo("trellis");
+        let resolution: u64 = self.trellis_resolution.parse().unwrap_or(0);
+        match dispatch(
+            "trellis",
+            &json!({
+                "action": action,
+                "image": self.trellis_image,
+                "resolution": resolution,
+                "overwrite": self.overwrite,
+            }),
+        ) {
+            Ok(v) => self.set_result("trellis", v),
+            Err(e) => self.set_error("trellis", e),
         }
     }
 
@@ -941,6 +962,10 @@ impl SplatApp {
                         self.do_mesh();
                         ui.close();
                     }
+                    if ui.button("Plan Photo to TRELLIS.2").clicked() {
+                        self.do_trellis("plan");
+                        ui.close();
+                    }
                     if ui.button("Recolor Grey Splats").clicked() {
                         self.do_recolor();
                         ui.close();
@@ -1089,6 +1114,27 @@ impl SplatApp {
                 if ui.button("Recolor grey splats").clicked() {
                     self.do_recolor();
                 }
+            });
+            ui.collapsing("Single photo (TRELLIS.2)", |ui| {
+                ui.small("One object photo in. Textured GLB out. The splat viewport opens .ply and .spz.");
+                ui.label("Photo (.png .jpg .webp):");
+                ui.text_edit_singleline(&mut self.trellis_image);
+                ui.label("Resolution:");
+                egui::ComboBox::from_id_salt("trellis_resolution")
+                    .selected_text(self.trellis_resolution.clone())
+                    .show_ui(ui, |ui| {
+                        for name in ["512", "1024", "1536"] {
+                            ui.selectable_value(&mut self.trellis_resolution, name.to_string(), name);
+                        }
+                    });
+                ui.horizontal(|ui| {
+                    if ui.button("Plan").clicked() {
+                        self.do_trellis("plan");
+                    }
+                    if ui.button("Start").clicked() {
+                        self.do_trellis("start");
+                    }
+                });
             });
             ui.collapsing("Edit pipeline (RDF)", |ui| {
                 ui.label("Crop box:");
@@ -1405,6 +1451,7 @@ impl SplatApp {
                         ("train list", "List training jobs"),
                         ("mesh", "Build a GLB box collider"),
                         ("recolor", "Tint near-grey splats"),
+                        ("trellis plan", "Plan one photo through TRELLIS.2"),
                         ("load scene", "Upload current path to the GPU viewport"),
                         ("reset camera", "Reset orbit camera"),
                     ];
@@ -1423,6 +1470,7 @@ impl SplatApp {
                                 "engine_status" => self.do_engines(),
                                 "mesh" => self.do_mesh(),
                                 "recolor" => self.do_recolor(),
+                                "trellis plan" => self.do_trellis("plan"),
                                 "load scene" => self.load_scene(frame),
                                 "reset camera" => self.view = View::default(),
                                 _ if id.starts_with("worlds") => {
@@ -1621,13 +1669,13 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
     lines.push(format!("status: version {}", st["version"]));
     // Menu dispatch parity: every documented op must exist on the bus.
     let ops_arr = st["ops"].as_array().ok_or("status ops missing")?;
-    if ops_arr.len() < 13 {
+    if ops_arr.len() < 14 {
         return Err(format!(
-            "menu parity: expected 13 ops, got {}",
+            "menu parity: expected 14 ops, got {}",
             ops_arr.len()
         ));
     }
-    for name in ["mesh", "recolor", "recipe"] {
+    for name in ["mesh", "recolor", "recipe", "trellis"] {
         if !ops_arr.iter().any(|v| v.as_str() == Some(name)) {
             return Err(format!("menu parity: missing {name}"));
         }

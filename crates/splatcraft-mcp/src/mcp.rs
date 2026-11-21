@@ -200,6 +200,25 @@ pub fn tools_list() -> Value {
                 "required": ["name", "out"]
             }
         }));
+        tools.push(json!({
+            "name": "splat_trellis",
+            "description": "One photo of an object to a TRELLIS.2 textured GLB (microsoft/TRELLIS.2-4B). action: plan (dry, prints the command), start (detached job), status, log, cancel, list. resolution is 512, 1024, or 1536. Output is a mesh, not a Gaussian splat. Official install is Linux with a 24GB NVIDIA GPU. The probe finds Python or SPLATCRAFT_TRELLIS2; the model import happens when the job runs.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["plan", "start", "status", "log", "cancel", "list"]},
+                    "image": {"type": "string", "description": "One .png, .jpg, .jpeg, or .webp of the object"},
+                    "output": {"type": "string", "description": "Must end in .glb. Defaults beside the image."},
+                    "resolution": {"type": "integer", "enum": [512, 1024, 1536], "default": 512},
+                    "seed": {"type": "integer", "default": 42},
+                    "overwrite": {"type": "boolean", "default": false},
+                    "job_id": {"type": "string"},
+                    "lines": {"type": "integer"},
+                    "limit": {"type": "integer"}
+                },
+                "required": ["action"]
+            }
+        }));
     }
     list
 }
@@ -218,6 +237,7 @@ fn op_for(tool: &str) -> Option<&'static str> {
         "splat_mesh" => Some("mesh"),
         "splat_recolor" => Some("recolor"),
         "splat_recipe" => Some("recipe"),
+        "splat_trellis" => Some("trellis"),
         _ => None,
     }
 }
@@ -324,7 +344,8 @@ mod tests {
                 "splat_synth",
                 "splat_mesh",
                 "splat_recolor",
-                "splat_recipe"
+                "splat_recipe",
+                "splat_trellis"
             ]
         );
     }
