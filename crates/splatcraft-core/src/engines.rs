@@ -49,19 +49,20 @@ const ENGINES: &[(&str, &str, &[&str], &str)] = &[
 
 pub fn engine_status() -> Value {
     let tools = crate::train::tools_dir();
-    let engines: Vec<Value> = ENGINES
+    let mut engines: Vec<Value> = ENGINES
         .iter()
         .map(|(name, var, bins, purpose)| match locate(var, bins, tools.as_deref()) {
             Some(p) => json!({"engine": name, "status": "up", "path": p.to_string_lossy(), "purpose": purpose}),
             None => json!({"engine": name, "status": "down", "searched": bins, "override": var, "purpose": purpose}),
         })
         .collect();
+    engines.push(crate::trellis::trellis_engine());
     let up = engines.iter().filter(|e| e["status"] == "up").count();
     json!({
         "success": true,
         "engines": engines,
         "up": up,
-        "total": ENGINES.len(),
+        "total": engines.len(),
         "tools_dir": tools.map(|t| t.to_string_lossy().into_owned()),
         "note": "Probe only looks for the files. Nothing is executed or version-checked here; \
                  `train action=plan` checks each tool's --help before a run."
@@ -77,7 +78,12 @@ mod tests {
     fn status_shape() {
         let v = engine_status();
         assert_eq!(v["success"], true);
-        assert_eq!(v["total"], ENGINES.len());
+        assert_eq!(v["total"], ENGINES.len() + 1);
+        assert!(v["engines"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["engine"] == "trellis2"));
         assert!(v["engines"].is_array());
     }
 }
