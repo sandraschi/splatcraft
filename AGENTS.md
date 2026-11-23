@@ -20,11 +20,11 @@ so tools that write files must emit LF. After bulk writes, check:
 | `craft-secrets` | lib | Env var first, then OS credential store (keyring). No splatcraft dependencies; shared pattern for craft apps, see docs/SECRETS_STANDARD.md |
 | `splat-train` | lib | Tool locator, `Probe` trait (reads `--help`), pure stage planner, job store, detached supervisor |
 | `splatcraft-core` | L1 | `dispatch(op, &Value) -> Result<Value>`; paths, engines probe, ops |
-| `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2024-11-05 stdio; hidden `job-run` supervisor entry |
+| `splatcraft-mcp` | L2 | `splatcraft-cli` binary: clap CLI plus MCP 2026-07-28 stdio; hidden `job-run` supervisor entry |
 | `splatcraft-app` | L3 | egui desktop host, calls `dispatch` in-process, `--smoke` |
 
 CLI, MCP and app share `dispatch`. Never put logic in a front end.
-Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train, mesh, recolor, recipe.
+Ops: status, engine_status, inspect, convert, synth, edit, merge, render, worlds, train, mesh, recolor, recipe, trellis.
 
 ## Rules
 

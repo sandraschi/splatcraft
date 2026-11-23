@@ -93,7 +93,7 @@ $cli = Join-Path $RepoRoot 'target\release\splatcraft-cli.exe'
 foreach ($f in $app, $cli) { if (-not (Test-Path $f)) { Fail "missing build output: $f" } }
 & $app --smoke; Need $LASTEXITCODE 'splatcraft --smoke'
 & $cli status | Out-Null; Need $LASTEXITCODE 'splatcraft-cli status'
-$init = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"release-smoke","version":"0"}}}'
+$init = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"release-smoke","version":"0"}}}'
 $resp = $init | & $cli mcp | Select-Object -First 1
 if ($resp -notmatch '"result"') { Fail "MCP initialize returned no result: $resp" }
 Write-Ok 'smoke: app, cli status, MCP initialize'

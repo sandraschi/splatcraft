@@ -2,7 +2,7 @@
 
 **Repo:** `splatcraft` (Pure-Rust ArtCraft pattern, 9 crates)
 **Version:** 0.1.0 (workspace.package)
-**Transport:** MCP 2024-11-05 stdio (`splatcraft-cli mcp`); no control port claimed
+**Transport:** MCP 2026-07-28 stdio (`splatcraft-cli mcp`); no control port claimed
 **Crates:** `splat-formats` (PLY/SPZ codecs) / `splat-ops` (crop, prune,
 transform, merge, reduce_sh) / `splat-view` (`LiveScene` via wgpu-3dgs-viewer
 0.8) / `splat-worlds` (Marble client, fake-transport tests) / `splat-train`
@@ -43,6 +43,9 @@ generate, and train splats without moving secrets through the LLM context.
   clears higher SH bands on those splats, and writes a texturecraft bridge
   JSON beside the output. Saturated splats are left unchanged.
 - `recipe`: offline democraft runs `info`, `convert`, `collider`, `recolor`.
+- `trellis`: one photo to a TRELLIS.2 textured GLB (plan or detached start).
+  Not a splat. Official stack is Linux, 24GB NVIDIA, weights
+  `microsoft/TRELLIS.2-4B`. No fal.ai.
 - `train`: plan/start/status/log/cancel/list over ffmpeg + COLMAP + Brush
   with `--help` flag discovery, detached supervisor, heartbeat 5 s, stale
   45 s means `lost`. Layout `<data>/jobs/<id>/`, event log `jobs.jsonl`.
