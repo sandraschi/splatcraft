@@ -15,9 +15,9 @@ Tell Cursor, Claude, Antigravity, or OpenCode: **Install this.**
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-craft.ps1
 ```
 
-Installs the Windows app, the CLI, and the MCP bundle.
+Installs the Windows app and the CLI (Start Menu shortcut, CLI on the user PATH). `-RegisterClients` also registers the MCP exe with the IDEs that are installed. `-Clients cursor,claude-desktop` limits that list. `-Mcpb` installs the Claude Desktop extension bundle.
 
-That registers the MCP server in each of those that is installed. More paths: [INSTALL.md](INSTALL.md).
+More paths: [INSTALL.md](INSTALL.md).
 
 Other ways, all detailed in [INSTALL.md](INSTALL.md): prebuilt zip, MCPB bundle for Claude
 Desktop, build from source, manual MCP config. mcpb is not Python-only; its manifest supports
