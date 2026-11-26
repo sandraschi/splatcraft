@@ -3,6 +3,12 @@
 First release. Pure-Rust Gaussian splat toolkit on the ArtCraft 3-tier pattern (core, MCP, app).
 Windows x64 only for now.
 
+## Single photo through TRELLIS.2 (2026-11-14)
+
+- `trellis` takes one object photo and plans or starts a detached job that runs Microsoft TRELLIS.2-4B. Resolution 512, 1024, or 1536. The output is a textured `.glb`, not a Gaussian splat.
+- CLI `trellis` and MCP `splat_trellis`. The toolbox section "Single photo (TRELLIS.2)" has Plan and Start.
+- The runner is Python, or `SPLATCRAFT_TRELLIS2` when that file exists. Official install remains Linux with a 24GB NVIDIA GPU. fal.ai stays out.
+
 ## Real capture still (2026-11-14)
 
 - Headless `render` drew Marcel Padilla's houseplant capture (CC-BY-4.0, 113,648 splats, SH degree 0) to a 1280x960 PNG. Front view yaw 18, pitch -8, covered_fraction 0.291. The still is `docs/screenshots/plant-front.png`.
