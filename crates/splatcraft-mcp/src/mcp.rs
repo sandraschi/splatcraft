@@ -80,39 +80,6 @@ pub fn tools_list() -> Value {
             }
         },
         {
-            "name": "splat_worlds",
-            "description": "World Labs Marble world generation with a spend guard. Needs a World Labs API key (env WORLDLABS_API_KEY, or stored with `splatcraft-cli secret set worlds`) for everything except action=ledger and a dry-run generate. action: ledger (spend so far vs cap), credits (live balance, free), generate (DRY RUN unless confirm_spend=true; a marble-1.1 world costs about 1500 API credits; a cumulative cap, default 4500 via SPLATCRAFT_MARBLE_CAP, refuses further spend), status (operation_id, optional wait), fetch (download splats/mesh/pano by operation_id or world_id), list. API credits are separate from marble.worldlabs.ai web credits.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "action": {"type": "string", "enum": ["ledger", "credits", "generate", "status", "fetch", "list"]},
-                    "kind": {"type": "string", "enum": ["text", "image", "video"], "default": "text"},
-                    "prompt": {"type": "string"},
-                    "url": {"type": "string", "description": "Public https URL of the image or video"},
-                    "file": {"type": "string", "description": "Local image or video to upload (100 MB max)"},
-                    "name": {"type": "string"},
-                    "model": {"type": "string", "enum": ["marble-1.1", "marble-1.1-plus"], "default": "marble-1.1"},
-                    "is_pano": {"type": "boolean"},
-                    "disable_recaption": {"type": "boolean"},
-                    "seed": {"type": "integer"},
-                    "tags": {"type": "array", "items": {"type": "string"}},
-                    "confirm_spend": {"type": "boolean", "default": false},
-                    "max_credits": {"type": "integer", "description": "Lowers the cap for this call; cannot raise it"},
-                    "operation_id": {"type": "string"},
-                    "world_id": {"type": "string"},
-                    "wait": {"type": "boolean", "default": false},
-                    "timeout_secs": {"type": "integer", "default": 600, "maximum": 3600},
-                    "interval_secs": {"type": "integer", "default": 15},
-                    "dest": {"type": "string", "description": "Directory for fetched assets"},
-                    "assets": {"type": "array", "items": {"type": "string", "enum": ["100k", "500k", "full", "mesh", "pano", "thumbnail"]}, "default": ["500k", "mesh"]},
-                    "overwrite": {"type": "boolean", "default": false},
-                    "page_size": {"type": "integer", "default": 10},
-                    "page_token": {"type": "string"}
-                },
-                "required": ["action"]
-            }
-        },
-        {
             "name": "splat_train",
             "description": "Video, image folder or COLMAP dataset to a splat, as a detached job (ffmpeg frames, COLMAP poses, Brush training, then validated .ply or .spz output). action: plan (dry: resolves tools, checks their --help, shows the exact commands), start (writes a job and launches a supervisor that outlives this call), status (job_id; state running/succeeded/failed/cancelled/lost, per-stage status, log tail), log, cancel, list. Needs brush, and for video or images also colmap (and ffmpeg for video); see splat_engine_status. A real run takes minutes to hours on the GPU. Exactly one of video, images_dir, dataset.",
             "inputSchema": {
@@ -160,6 +127,67 @@ pub fn tools_list() -> Value {
         }
     ]);
     if let Some(tools) = list.as_array_mut() {
+        tools.push(json!({
+            "name": "splat_worlds",
+            "description": "World Labs Marble world generation with a spend guard. Needs a World Labs API key (env WORLDLABS_API_KEY, or stored with `splatcraft-cli secret set worlds`) for everything except action=ledger, dry-run generate, and dry-run delete. action: ledger (spend so far vs cap), credits (live balance, free), generate (DRY RUN unless confirm_spend=true; supports text, image, multi-image, video; a marble-1.1 world costs about 1500 API credits; cumulative cap default 4500 via SPLATCRAFT_MARBLE_CAP), status (operation_id, optional wait), get (world_id metadata and asset availability), fetch (download splats/mesh/pano by operation_id or world_id; dest defaults to <data>/worlds), list, delete (DRY RUN unless confirm_delete=true). API credits are separate from marble.worldlabs.ai web credits.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["ledger", "credits", "generate", "status", "get", "fetch", "list", "delete"]},
+                    "kind": {"type": "string", "enum": ["text", "image", "multi-image", "video"], "default": "text"},
+                    "prompt": {"type": "string"},
+                    "url": {"type": "string", "description": "Public https URL of the image or video"},
+                    "file": {"type": "string", "description": "Local image or video to upload (100 MB max)"},
+                    "multi_images": {
+                        "type": "array",
+                        "description": "For kind=multi-image: 2-16 items with {azimuth: 0..360, url|file}",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "azimuth": {"type": "number", "minimum": 0, "maximum": 360},
+                                "url": {"type": "string"},
+                                "file": {"type": "string"}
+                            },
+                            "required": ["azimuth"]
+                        }
+                    },
+                    "name": {"type": "string"},
+                    "model": {"type": "string", "enum": ["marble-1.1", "marble-1.1-plus"], "default": "marble-1.1"},
+                    "is_pano": {"type": "boolean"},
+                    "disable_recaption": {"type": "boolean"},
+                    "seed": {"type": "integer"},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                    "confirm_spend": {"type": "boolean", "default": false},
+                    "confirm_delete": {"type": "boolean", "default": false},
+                    "max_credits": {"type": "integer", "description": "Lowers the cap for this call; cannot raise it"},
+                    "operation_id": {"type": "string"},
+                    "world_id": {"type": "string"},
+                    "wait": {"type": "boolean", "default": false},
+                    "timeout_secs": {"type": "integer", "default": 600, "maximum": 3600},
+                    "interval_secs": {"type": "integer", "default": 15},
+                    "dest": {"type": "string", "description": "Directory for fetched assets (defaults to <data>/worlds)"},
+                    "assets": {"type": "array", "items": {"type": "string", "enum": ["100k", "500k", "full", "mesh", "pano", "thumbnail"]}, "default": ["500k", "mesh"]},
+                    "overwrite": {"type": "boolean", "default": false},
+                    "page_size": {"type": "integer", "default": 10},
+                    "page_token": {"type": "string"}
+                },
+                "required": ["action"]
+            }
+        }));
+        tools.push(json!({
+            "name": "splat_library",
+            "description": "List local DIY splats (trained jobs and <SPLATCRAFT_TOOLS>/scans) and fetched World Labs Marble splats (<data>/worlds) in one unified catalog.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["list"], "default": "list"},
+                    "source": {"type": "string", "enum": ["all", "diy", "marble", "local"], "default": "all"},
+                    "query": {"type": "string", "description": "Case-insensitive substring filter on name or path"},
+                    "dirs": {"type": "array", "items": {"type": "string"}, "description": "Optional extra directories to scan"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 100}
+                }
+            }
+        }));
         tools.push(json!({
             "name": "splat_mesh",
             "description": "Write a GLB box collider from the finite positions in a .ply or .spz file. This is generated here. It is not Marble's downloaded collider.",
@@ -231,6 +259,7 @@ fn op_for(tool: &str) -> Option<&'static str> {
         "splat_merge" => Some("merge"),
         "splat_render" => Some("render"),
         "splat_worlds" => Some("worlds"),
+        "splat_library" => Some("library"),
         "splat_train" => Some("train"),
         "splat_engine_status" => Some("engine_status"),
         "splat_synth" => Some("synth"),
@@ -338,10 +367,11 @@ mod tests {
                 "splat_edit",
                 "splat_merge",
                 "splat_render",
-                "splat_worlds",
                 "splat_train",
                 "splat_engine_status",
                 "splat_synth",
+                "splat_worlds",
+                "splat_library",
                 "splat_mesh",
                 "splat_recolor",
                 "splat_recipe",

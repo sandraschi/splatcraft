@@ -87,6 +87,12 @@ enum Cmd {
         #[arg(long)]
         args: String,
     },
+    /// Unified local library of DIY splats and fetched Marble worlds.
+    /// Takes optional JSON args (inline or @file.json), e.g. '{"source":"all"}'.
+    Library {
+        #[arg(long, default_value = "{}")]
+        args: String,
+    },
     /// Video, images or dataset to splat as a detached job. Takes the
     /// splat_train arguments as JSON (inline or @file.json), e.g.
     /// '{"action":"plan","video":"clip.mp4","output":"out.spz"}'.
@@ -308,6 +314,16 @@ fn main() {
         ),
         Cmd::Worlds { args } => match read_steps(&args) {
             Ok(v) => run("worlds", v),
+            Err(e) => {
+                println!(
+                    "{}",
+                    json!({"success": false, "error": format!("--args is not valid JSON ({e}); use @file.json to avoid shell quoting"), "error_type": "invalid"})
+                );
+                1
+            }
+        },
+        Cmd::Library { args } => match read_steps(&args) {
+            Ok(v) => run("library", v),
             Err(e) => {
                 println!(
                     "{}",

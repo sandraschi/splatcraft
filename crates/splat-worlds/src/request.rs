@@ -16,6 +16,7 @@ const MAX_NAME_CHARS: usize = 200;
 pub enum Kind {
     Text,
     Image,
+    MultiImage,
     Video,
 }
 
@@ -24,6 +25,7 @@ impl Kind {
         match s {
             "text" => Some(Kind::Text),
             "image" => Some(Kind::Image),
+            "multi-image" | "multi_image" => Some(Kind::MultiImage),
             "video" => Some(Kind::Video),
             _ => None,
         }
@@ -33,6 +35,7 @@ impl Kind {
         match self {
             Kind::Text => "text",
             Kind::Image => "image",
+            Kind::MultiImage => "multi-image",
             Kind::Video => "video",
         }
     }
@@ -47,11 +50,18 @@ pub enum Source {
     MediaAsset(String),
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct MultiImageItem {
+    pub azimuth_deg: f64,
+    pub source: Source,
+}
+
 #[derive(Clone, Debug)]
 pub struct GenerateRequest {
     pub kind: Kind,
     pub prompt: Option<String>,
     pub source: Source,
+    pub multi_images: Vec<MultiImageItem>,
     pub name: String,
     pub model: String,
     pub is_pano: bool,
@@ -89,6 +99,11 @@ impl GenerateRequest {
         }
         match (self.kind, &self.source) {
             (Kind::Text, Source::None) => {
+                if !self.multi_images.is_empty() {
+                    return Err(WorldsError::Invalid(
+                        "text generation takes no multi_images".into(),
+                    ));
+                }
                 if self.prompt.as_deref().is_none_or(|p| p.trim().is_empty()) {
                     return Err(WorldsError::Invalid(
                         "text generation needs a prompt".into(),
@@ -100,6 +115,39 @@ impl GenerateRequest {
                     "text generation takes no source".into(),
                 ));
             }
+            (Kind::MultiImage, Source::None) => {
+                if self.multi_images.len() < 2 || self.multi_images.len() > 16 {
+                    return Err(WorldsError::Invalid(
+                        "multi-image generation needs between 2 and 16 images".into(),
+                    ));
+                }
+                for item in &self.multi_images {
+                    if !item.azimuth_deg.is_finite() || !(0.0..=360.0).contains(&item.azimuth_deg) {
+                        return Err(WorldsError::Invalid(
+                            "multi-image azimuth must be finite and in 0..=360".into(),
+                        ));
+                    }
+                    match &item.source {
+                        Source::Uri(u) if u.starts_with("https://") => {}
+                        Source::Uri(_) => {
+                            return Err(WorldsError::Invalid(
+                                "multi-image url must start with https://".into(),
+                            ));
+                        }
+                        Source::MediaAsset(id) if !id.is_empty() => {}
+                        Source::MediaAsset(_) | Source::None => {
+                            return Err(WorldsError::Invalid(
+                                "each multi-image entry needs a url or uploaded file".into(),
+                            ));
+                        }
+                    }
+                }
+            }
+            (Kind::MultiImage, _) => {
+                return Err(WorldsError::Invalid(
+                    "multi-image generation uses multi_images, not url/file".into(),
+                ));
+            }
             (_, Source::None) => {
                 return Err(WorldsError::Invalid(format!(
                     "{} generation needs a url or an uploaded file",
@@ -107,6 +155,11 @@ impl GenerateRequest {
                 )));
             }
             (_, Source::Uri(u)) => {
+                if !self.multi_images.is_empty() {
+                    return Err(WorldsError::Invalid(
+                        "multi_images only applies to kind=multi-image".into(),
+                    ));
+                }
                 if !u.starts_with("https://") {
                     return Err(WorldsError::Invalid(
                         "source url must start with https://".into(),
@@ -114,6 +167,11 @@ impl GenerateRequest {
                 }
             }
             (_, Source::MediaAsset(id)) => {
+                if !self.multi_images.is_empty() {
+                    return Err(WorldsError::Invalid(
+                        "multi_images only applies to kind=multi-image".into(),
+                    ));
+                }
                 if id.is_empty() {
                     return Err(WorldsError::Invalid("empty media asset id".into()));
                 }
@@ -130,9 +188,9 @@ impl GenerateRequest {
     /// The JSON body for `POST /worlds:generate`.
     pub fn body(&self) -> Result<Value> {
         self.validate()?;
-        let media = |key: &str, extra_pano: bool| -> Value {
+        let source_obj = |src: &Source, extra_pano: bool| -> Value {
             let mut m = Map::new();
-            match &self.source {
+            match src {
                 Source::Uri(u) => {
                     m.insert("source".into(), json!("uri"));
                     m.insert("uri".into(), json!(u));
@@ -146,7 +204,6 @@ impl GenerateRequest {
             if extra_pano && self.is_pano {
                 m.insert("is_pano".into(), json!(true));
             }
-            let _ = key;
             Value::Object(m)
         };
         let mut wp = Map::new();
@@ -159,10 +216,23 @@ impl GenerateRequest {
                 );
             }
             Kind::Image => {
-                wp.insert("image_prompt".into(), media("image_prompt", true));
+                wp.insert("image_prompt".into(), source_obj(&self.source, true));
+            }
+            Kind::MultiImage => {
+                let items: Vec<Value> = self
+                    .multi_images
+                    .iter()
+                    .map(|item| {
+                        json!({
+                            "azimuth": item.azimuth_deg,
+                            "content": source_obj(&item.source, false),
+                        })
+                    })
+                    .collect();
+                wp.insert("multi_image_prompt".into(), Value::Array(items));
             }
             Kind::Video => {
-                wp.insert("video_prompt".into(), media("video_prompt", false));
+                wp.insert("video_prompt".into(), source_obj(&self.source, false));
             }
         }
         if self.kind != Kind::Text {
@@ -197,6 +267,7 @@ mod tests {
             kind: Kind::Text,
             prompt: Some(prompt.into()),
             source: Source::None,
+            multi_images: vec![],
             name: "w".into(),
             model: DEFAULT_MODEL.into(),
             is_pano: false,
@@ -265,6 +336,46 @@ mod tests {
         r.is_pano = true;
         assert!(r.body().is_err());
         assert!(text(&"x".repeat(MAX_PROMPT_CHARS + 1)).body().is_err());
+    }
+
+    #[test]
+    fn multi_image_body_and_validation() {
+        let mut r = text("");
+        r.kind = Kind::MultiImage;
+        r.prompt = Some("courtyard".into());
+        r.multi_images = vec![
+            MultiImageItem {
+                azimuth_deg: 0.0,
+                source: Source::Uri("https://x.test/0.jpg".into()),
+            },
+            MultiImageItem {
+                azimuth_deg: 180.0,
+                source: Source::MediaAsset("ma-2".into()),
+            },
+        ];
+        let b = r.body().unwrap();
+        assert_eq!(b["world_prompt"]["type"], "multi-image");
+        assert_eq!(b["world_prompt"]["multi_image_prompt"][0]["azimuth"], 0.0);
+        assert_eq!(
+            b["world_prompt"]["multi_image_prompt"][0]["content"]["uri"],
+            "https://x.test/0.jpg"
+        );
+        assert_eq!(
+            b["world_prompt"]["multi_image_prompt"][1]["content"]["media_asset_id"],
+            "ma-2"
+        );
+        assert_eq!(b["world_prompt"]["text_prompt"], "courtyard");
+
+        // Too few images.
+        r.multi_images.pop();
+        assert!(r.body().is_err());
+
+        // Invalid azimuth.
+        r.multi_images.push(MultiImageItem {
+            azimuth_deg: 400.0,
+            source: Source::Uri("https://x.test/1.jpg".into()),
+        });
+        assert!(r.body().is_err());
     }
 
     #[test]

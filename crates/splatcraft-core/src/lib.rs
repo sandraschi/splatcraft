@@ -10,6 +10,7 @@
 pub mod edit;
 pub mod engines;
 pub mod error;
+pub mod library;
 pub mod ops;
 pub mod paths;
 pub mod render;
@@ -50,6 +51,7 @@ pub const OPS: &[&str] = &[
     "merge",
     "render",
     "worlds",
+    "library",
     "train",
     "mesh",
     "recolor",
@@ -69,6 +71,7 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value> {
         "merge" => edit::merge(args),
         "render" => render::render(args),
         "worlds" => worlds::worlds(args),
+        "library" => library::library(args),
         "train" => train::train(args),
         "mesh" => studio::mesh_op(args),
         "recolor" => studio::recolor_op(args),

@@ -15,6 +15,7 @@ pub const KEY_ENV: &str = "WORLDLABS_API_KEY";
 pub trait Transport {
     fn get_json(&self, path: &str) -> Result<Value>;
     fn post_json(&self, path: &str, body: &Value) -> Result<Value>;
+    fn delete_json(&self, path: &str) -> Result<Value>;
     /// PUT raw bytes to a pre-signed URL (no API key is sent).
     fn put_bytes(&self, url: &str, headers: &[(String, String)], bytes: &[u8]) -> Result<()>;
     /// GET a pre-signed URL (no API key is sent), refusing bodies over `max`.
@@ -125,6 +126,29 @@ impl Transport for HttpTransport {
         Self::finish(resp)
     }
 
+    fn delete_json(&self, path: &str) -> Result<Value> {
+        let resp = self
+            .http
+            .delete(format!("{BASE_URL}{path}"))
+            .header("WLT-Api-Key", &self.key)
+            .send()
+            .map_err(|e| WorldsError::Network(e.to_string()))?;
+        let status = resp.status().as_u16();
+        let text = resp
+            .text()
+            .map_err(|e| WorldsError::Network(e.to_string()))?;
+        if !(200..300).contains(&status) {
+            return Err(map_status(status, &text));
+        }
+        if text.trim().is_empty() {
+            return Ok(json!({"deleted": true}));
+        }
+        serde_json::from_str(&text).map_err(|e| WorldsError::Api {
+            status,
+            message: format!("response was not JSON: {e}"),
+        })
+    }
+
     fn put_bytes(&self, url: &str, headers: &[(String, String)], bytes: &[u8]) -> Result<()> {
         require_https(url)?;
         let mut req = self.http.put(url).body(bytes.to_vec());
@@ -230,6 +254,11 @@ impl<T: Transport> Marble<T> {
         self.t.get_json(&format!("/worlds/{id}"))
     }
 
+    pub fn delete_world(&self, id: &str) -> Result<Value> {
+        check_id(id)?;
+        self.t.delete_json(&format!("/worlds/{id}"))
+    }
+
     /// Poll until the operation is done, fails, or `timeout` passes. A timeout
     /// returns the last operation state (not an error); the caller reports it.
     pub fn wait(&self, id: &str, timeout: Duration, interval: Duration) -> Result<Value> {
@@ -332,6 +361,10 @@ pub mod fake {
                 .borrow()
                 .clone()
                 .ok_or(WorldsError::Network("no post script".into()))
+        }
+        fn delete_json(&self, path: &str) -> Result<Value> {
+            self.calls.borrow_mut().push(format!("DELETE {path}"));
+            Ok(json!({"deleted": true}))
         }
         fn put_bytes(&self, url: &str, _h: &[(String, String)], b: &[u8]) -> Result<()> {
             self.calls
@@ -442,6 +475,15 @@ mod tests {
         let calls = m.t.calls.borrow();
         assert!(calls[0].starts_with("POST /media-assets:prepare_upload"));
         assert_eq!(calls[1], "PUT https://gcs.test/u 5");
+    }
+
+    #[test]
+    fn delete_world_validates_and_calls_delete() {
+        let m = Marble { t: Fake::default() };
+        assert!(m.delete_world("../bad").is_err());
+        let r = m.delete_world("w-123").unwrap();
+        assert_eq!(r["deleted"], true);
+        assert_eq!(m.t.calls.borrow().as_slice(), &["DELETE /worlds/w-123"]);
     }
 
     #[test]

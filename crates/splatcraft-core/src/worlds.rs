@@ -1,9 +1,10 @@
 //! `worlds` op: World Labs Marble generation with a spend guard.
 //!
-//! Actions: `ledger`, `credits`, `generate`, `status`, `fetch`, `list`.
-//! `generate` is a dry run unless `confirm_spend` is true. Every confirmed
-//! submit is appended to `marble-ledger.jsonl` and counts against a
-//! cumulative cap (`SPLATCRAFT_MARBLE_CAP`, default 4500 credits).
+//! Actions: `ledger`, `credits`, `generate`, `status`, `get`, `fetch`, `list`, `delete`.
+//! `generate` is a dry run unless `confirm_spend` is true. `delete` is a dry run
+//! unless `confirm_delete` is true. Every confirmed submit is appended to
+//! `marble-ledger.jsonl` and counts against a cumulative cap
+//! (`SPLATCRAFT_MARBLE_CAP`, default 4500 credits).
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -12,7 +13,9 @@ use serde_json::{json, Value};
 use splat_worlds::assets::{self, Which};
 use splat_worlds::client::{HttpTransport, Marble, Transport};
 use splat_worlds::ledger::{check_cap, Ledger, DEFAULT_CAP};
-use splat_worlds::request::{estimate_credits, GenerateRequest, Kind, Source, DEFAULT_MODEL};
+use splat_worlds::request::{
+    estimate_credits, GenerateRequest, Kind, MultiImageItem, Source, DEFAULT_MODEL,
+};
 use splat_worlds::WorldsError;
 
 use crate::error::{Error, Result};
@@ -76,10 +79,12 @@ pub fn run<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Resu
         "generate" => generate(args, make),
         "credits" => Ok(json!({"success": true, "credits": Marble { t: make()? }.credits()?})),
         "status" => status(args, make),
+        "get" => get_world(args, make),
         "fetch" => fetch(args, make),
         "list" => list(args, make),
+        "delete" => delete_world(args, make),
         other => Err(Error::Invalid(format!(
-            "unknown worlds action '{other}' (known: ledger, credits, generate, status, fetch, list)"
+            "unknown worlds action '{other}' (known: ledger, credits, generate, status, get, fetch, list, delete)"
         ))),
     }
 }
@@ -108,10 +113,65 @@ fn op_id(resp: &Value) -> Option<String> {
         .map(|s| s.rsplit('/').next().unwrap_or(s).to_string())
 }
 
-fn build_request(args: &Value) -> Result<(GenerateRequest, Option<PathBuf>)> {
+struct PendingUploads {
+    single: Option<PathBuf>,
+    multi: Vec<(usize, PathBuf)>,
+}
+
+fn validate_upload_file(raw: &str) -> Result<PathBuf> {
+    let p = resolve(raw)?;
+    let meta = std::fs::metadata(&p)?;
+    if meta.len() > MAX_UPLOAD_BYTES {
+        return Err(Error::Invalid(
+            "file exceeds the 100 MB upload limit".into(),
+        ));
+    }
+    Ok(p)
+}
+
+type ParsedMultiImages = (Vec<MultiImageItem>, Vec<(usize, PathBuf)>);
+
+fn parse_multi_images(args: &Value) -> Result<ParsedMultiImages> {
+    let Some(arr) = args.get("multi_images").and_then(Value::as_array) else {
+        return Ok((Vec::new(), Vec::new()));
+    };
+    let mut items = Vec::with_capacity(arr.len());
+    let mut uploads = Vec::new();
+    for (idx, entry) in arr.iter().enumerate() {
+        let az = entry
+            .get("azimuth")
+            .and_then(Value::as_f64)
+            .ok_or_else(|| {
+                Error::Invalid(format!("multi_images[{idx}] needs numeric 'azimuth'"))
+            })?;
+        let url = opt_str(entry, "url")?;
+        let file = opt_str(entry, "file")?;
+        if url.is_some() && file.is_some() {
+            return Err(Error::Invalid(format!(
+                "multi_images[{idx}]: give either url or file, not both"
+            )));
+        }
+        let source = match (url, file) {
+            (Some(u), None) => Source::Uri(u.to_string()),
+            (None, Some(f)) => {
+                uploads.push((idx, validate_upload_file(f)?));
+                Source::MediaAsset(format!("pending-upload-{idx}"))
+            }
+            _ => Source::None,
+        };
+        items.push(MultiImageItem {
+            azimuth_deg: az,
+            source,
+        });
+    }
+    Ok((items, uploads))
+}
+
+fn build_request(args: &Value) -> Result<(GenerateRequest, PendingUploads)> {
     let kind = match opt_str(args, "kind")? {
-        Some(k) => Kind::parse(k)
-            .ok_or_else(|| Error::Invalid("kind must be text, image or video".into()))?,
+        Some(k) => Kind::parse(k).ok_or_else(|| {
+            Error::Invalid("kind must be text, image, multi-image or video".into())
+        })?,
         None => Kind::Text,
     };
     let url = opt_str(args, "url")?;
@@ -119,25 +179,20 @@ fn build_request(args: &Value) -> Result<(GenerateRequest, Option<PathBuf>)> {
     if url.is_some() && file.is_some() {
         return Err(Error::Invalid("give either url or file, not both".into()));
     }
-    let (source, file) = match (url, file) {
+    let (source, single) = match (url, file) {
         (Some(u), None) => (Source::Uri(u.to_string()), None),
-        (None, Some(f)) => {
-            let p = resolve(f)?;
-            let meta = std::fs::metadata(&p)?;
-            if meta.len() > MAX_UPLOAD_BYTES {
-                return Err(Error::Invalid(
-                    "file exceeds the 100 MB upload limit".into(),
-                ));
-            }
-            // Placeholder id, replaced after the upload on a confirmed run.
-            (Source::MediaAsset("pending-upload".into()), Some(p))
-        }
+        (None, Some(f)) => (
+            Source::MediaAsset("pending-upload".into()),
+            Some(validate_upload_file(f)?),
+        ),
         _ => (Source::None, None),
     };
+    let (multi_images, multi) = parse_multi_images(args)?;
     let req = GenerateRequest {
         kind,
         prompt: opt_str(args, "prompt")?.map(str::to_string),
         source,
+        multi_images,
         name: opt_str(args, "name")?
             .unwrap_or("splatcraft world")
             .to_string(),
@@ -156,11 +211,26 @@ fn build_request(args: &Value) -> Result<(GenerateRequest, Option<PathBuf>)> {
             .unwrap_or_default(),
     };
     req.validate()?;
-    Ok((req, file))
+    Ok((req, PendingUploads { single, multi }))
+}
+
+fn upload_path<T: Transport>(m: &Marble<T>, p: &std::path::Path, kind: &str) -> Result<String> {
+    let bytes = std::fs::read(p)?;
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let name = p
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("upload")
+        .to_string();
+    Ok(m.upload(&name, kind, &ext, &bytes)?)
 }
 
 fn generate<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result<Value> {
-    let (mut req, file) = build_request(args)?;
+    let (mut req, uploads) = build_request(args)?;
     let cost = estimate_credits(&req.model)?;
     let ledger = Ledger::in_dir(&data_dir()?);
     let spent = ledger.spent()?;
@@ -171,6 +241,13 @@ fn generate<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Res
         .map_or(cap(), |m| m.min(cap()));
     check_cap(spent, cost, cap)?;
     if !flag(args, "confirm_spend") {
+        let mut upload_list: Vec<String> = Vec::new();
+        if let Some(p) = &uploads.single {
+            upload_list.push(p.to_string_lossy().to_string());
+        }
+        for (_, p) in &uploads.multi {
+            upload_list.push(p.to_string_lossy().to_string());
+        }
         return Ok(json!({
             "success": true,
             "dry_run": true,
@@ -180,25 +257,21 @@ fn generate<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Res
             "spent_credits": spent,
             "cap_credits": cap,
             "headroom_after": cap - spent - cost,
-            "uploads_file": file.as_ref().map(|p| p.to_string_lossy().to_string()),
+            "uploads_file": uploads.single.as_ref().map(|p| p.to_string_lossy().to_string()),
+            "uploads_files": upload_list,
             "body": req.body()?,
         }));
     }
     let m = Marble { t: make()? };
-    if let Some(p) = file {
-        let bytes = std::fs::read(&p)?;
-        let ext = p
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        let name = p
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("upload")
-            .to_string();
-        let id = m.upload(&name, req.kind.as_str(), &ext, &bytes)?;
+    if let Some(p) = uploads.single {
+        let id = upload_path(&m, &p, req.kind.as_str())?;
         req.source = Source::MediaAsset(id);
+    }
+    for (idx, p) in uploads.multi {
+        let id = upload_path(&m, &p, "image")?;
+        if let Some(item) = req.multi_images.get_mut(idx) {
+            item.source = Source::MediaAsset(id);
+        }
     }
     let resp = m.generate(&req)?;
     // Written only after the POST succeeded, so a failed submit costs nothing.
@@ -264,7 +337,10 @@ fn status<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Resul
 }
 
 fn fetch<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result<Value> {
-    let dest = resolve(str_arg(args, "dest")?)?;
+    let dest = match opt_str(args, "dest")? {
+        Some(d) if !d.trim().is_empty() => resolve(d)?,
+        _ => data_dir()?.join("worlds"),
+    };
     let which: Vec<Which> = match args.get("assets").and_then(Value::as_array) {
         Some(a) => a
             .iter()
@@ -299,6 +375,48 @@ fn fetch<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result
     let urls = assets::extract(&world);
     let results = assets::fetch(&m.t, &urls, &which, &dest, &tag, flag(args, "overwrite"))?;
     Ok(json!({"success": true, "dest": dest.to_string_lossy(), "assets": results}))
+}
+
+fn get_world<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result<Value> {
+    let id = str_arg(args, "world_id")?;
+    let m = Marble { t: make()? };
+    let world = m.world(id)?;
+    let a = assets::extract(&world);
+    Ok(json!({
+        "success": true,
+        "world_id": id,
+        "caption": a.caption,
+        "assets": {
+            "100k": a.splat_100k.is_some(),
+            "500k": a.splat_500k.is_some(),
+            "full": a.splat_full.is_some(),
+            "mesh": a.mesh.is_some(),
+            "pano": a.pano.is_some(),
+            "thumbnail": a.thumbnail.is_some(),
+        },
+        "world": world,
+    }))
+}
+
+fn delete_world<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result<Value> {
+    let id = str_arg(args, "world_id")?;
+    if !flag(args, "confirm_delete") {
+        return Ok(json!({
+            "success": true,
+            "dry_run": true,
+            "world_id": id,
+            "note": "nothing was deleted; pass confirm_delete=true to permanently delete this Marble world",
+        }));
+    }
+    let m = Marble { t: make()? };
+    let resp = m.delete_world(id)?;
+    Ok(json!({
+        "success": true,
+        "dry_run": false,
+        "world_id": id,
+        "deleted": true,
+        "response": resp,
+    }))
 }
 
 fn list<T: Transport>(args: &Value, make: impl FnOnce() -> Result<T>) -> Result<Value> {
@@ -413,6 +531,62 @@ mod tests {
             assert_eq!(r["world_id"], "w1");
             assert_eq!(r["assets"]["500k"], true);
             assert_eq!(r["assets"]["mesh"], false);
+        });
+    }
+
+    #[test]
+    fn get_and_delete_world_flows() {
+        with_data(None, |_| {
+            let mk_get = || {
+                let f = Fake::default();
+                f.queue_get(
+                    "/worlds/w-42",
+                    json!({"id": "w-42", "assets": {"caption": "hall", "splats": {"spz_urls": {"500k": "https://cdn.test/w.spz"}}}}),
+                );
+                Ok(f)
+            };
+            let g = run(&json!({"action": "get", "world_id": "w-42"}), mk_get).unwrap();
+            assert_eq!(g["world_id"], "w-42");
+            assert_eq!(g["caption"], "hall");
+            assert_eq!(g["assets"]["500k"], true);
+
+            // Delete dry-run never touches network.
+            let d_dry = run(&json!({"action": "delete", "world_id": "w-42"}), no_net).unwrap();
+            assert_eq!(d_dry["dry_run"], true);
+
+            // Confirmed delete sends DELETE.
+            let d_ok = run(
+                &json!({"action": "delete", "world_id": "w-42", "confirm_delete": true}),
+                || Ok(Fake::default()),
+            )
+            .unwrap();
+            assert_eq!(d_ok["dry_run"], false);
+            assert_eq!(d_ok["deleted"], true);
+        });
+    }
+
+    #[test]
+    fn multi_image_dry_run_validates_and_builds_body() {
+        with_data(None, |_| {
+            let r = run(
+                &json!({
+                    "action": "generate",
+                    "kind": "multi-image",
+                    "prompt": "garden",
+                    "multi_images": [
+                        {"azimuth": 0, "url": "https://x.test/0.jpg"},
+                        {"azimuth": 180, "url": "https://x.test/180.jpg"}
+                    ]
+                }),
+                no_net,
+            )
+            .unwrap();
+            assert_eq!(r["dry_run"], true);
+            assert_eq!(r["body"]["world_prompt"]["type"], "multi-image");
+            assert_eq!(
+                r["body"]["world_prompt"]["multi_image_prompt"][1]["azimuth"],
+                180.0
+            );
         });
     }
 
