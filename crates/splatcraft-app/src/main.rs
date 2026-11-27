@@ -9,6 +9,7 @@
 #![deny(clippy::todo)]
 
 mod app;
+mod panels;
 
 fn open_arg(args: &[String]) -> Option<String> {
     let mut it = args.iter();

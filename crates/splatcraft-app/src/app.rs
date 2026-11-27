@@ -35,6 +35,9 @@ struct UndoEntry {
     result: String,
 }
 
+use crate::panels::library::{self, LibraryState};
+use crate::panels::worlds::{self, WorldsPanelState, WorldsUiEvent};
+
 pub struct SplatApp {
     // Core file fields.
     path: String,
@@ -54,6 +57,7 @@ pub struct SplatApp {
     show_engines: bool,
     show_train: bool,
     show_worlds: bool,
+    show_library: bool,
     // Viewport.
     view: View,
     loaded: Option<usize>,
@@ -90,15 +94,9 @@ pub struct SplatApp {
     recolor_recipe: String,
     trellis_image: String,
     trellis_resolution: String,
-    // Worlds panel.
-    worlds_action: String,
-    worlds_prompt: String,
-    worlds_kind: String,
-    worlds_model: String,
-    worlds_operation_id: String,
-    worlds_world_id: String,
-    worlds_dest: String,
-    worlds_confirm_spend: bool,
+    // Unified Library & Worlds panels.
+    library: LibraryState,
+    worlds: WorldsPanelState,
     // Train panel.
     train_action: String,
     train_video: String,
@@ -134,6 +132,7 @@ impl Default for SplatApp {
             show_engines: true,
             show_train: true,
             show_worlds: true,
+            show_library: true,
             view: View::default(),
             loaded: None,
             pending_open: false,
@@ -164,14 +163,8 @@ impl Default for SplatApp {
             recolor_recipe: "ghibli".to_string(),
             trellis_image: String::new(),
             trellis_resolution: "512".to_string(),
-            worlds_action: "ledger".to_string(),
-            worlds_prompt: String::new(),
-            worlds_kind: "text".to_string(),
-            worlds_model: String::new(),
-            worlds_operation_id: String::new(),
-            worlds_world_id: String::new(),
-            worlds_dest: String::new(),
-            worlds_confirm_spend: false,
+            library: LibraryState::new(),
+            worlds: WorldsPanelState::default(),
             train_action: "plan".to_string(),
             train_video: String::new(),
             train_images: String::new(),
@@ -447,68 +440,33 @@ impl SplatApp {
     }
 
     fn do_worlds(&mut self) {
-        self.push_undo("worlds");
-        let action = self.worlds_action.trim();
-        let mut args = serde_json::Map::new();
-        args.insert("action".to_string(), Value::String(action.to_string()));
-        match action {
-            "generate" => {
-                if !self.worlds_prompt.trim().is_empty() {
-                    args.insert(
-                        "prompt".to_string(),
-                        Value::String(self.worlds_prompt.trim().to_string()),
-                    );
-                }
-                if !self.worlds_kind.trim().is_empty() {
-                    args.insert(
-                        "kind".to_string(),
-                        Value::String(self.worlds_kind.trim().to_string()),
-                    );
-                }
-                if !self.worlds_model.trim().is_empty() {
-                    args.insert(
-                        "model".to_string(),
-                        Value::String(self.worlds_model.trim().to_string()),
-                    );
-                }
-                if self.worlds_confirm_spend {
-                    args.insert("confirm_spend".to_string(), Value::Bool(true));
-                }
+        let action = self.worlds.action.trim().to_string();
+        match self.worlds.build_args() {
+            Ok(args) => self.do_worlds_args(&action, args),
+            Err(e) => {
+                self.result_title = "worlds (error)".to_string();
+                self.result =
+                    json!({"success": false, "error": e, "error_type": "invalid"}).to_string();
+                self.status_text = format!("worlds: {e}");
             }
-            "status" => {
-                if !self.worlds_operation_id.trim().is_empty() {
-                    args.insert(
-                        "operation_id".to_string(),
-                        Value::String(self.worlds_operation_id.trim().to_string()),
-                    );
-                }
-            }
-            "fetch" => {
-                if !self.worlds_dest.trim().is_empty() {
-                    args.insert(
-                        "dest".to_string(),
-                        Value::String(self.worlds_dest.trim().to_string()),
-                    );
-                }
-                if !self.worlds_operation_id.trim().is_empty() {
-                    args.insert(
-                        "operation_id".to_string(),
-                        Value::String(self.worlds_operation_id.trim().to_string()),
-                    );
-                }
-                if !self.worlds_world_id.trim().is_empty() {
-                    args.insert(
-                        "world_id".to_string(),
-                        Value::String(self.worlds_world_id.trim().to_string()),
-                    );
-                }
-            }
-            "list" => {}
-            _ => {}
         }
-        match dispatch("worlds", &Value::Object(args)) {
-            Ok(v) => self.set_result("worlds", v),
-            Err(e) => self.set_error("worlds", e),
+    }
+
+    fn do_worlds_args(&mut self, action: &str, args: Value) {
+        self.push_undo("worlds");
+        match dispatch("worlds", &args) {
+            Ok(v) => {
+                self.worlds.ingest_result(action, &v);
+                if action == "fetch" {
+                    self.library.refresh();
+                }
+                self.set_result("worlds", v);
+            }
+            Err(e) => {
+                self.worlds.confirm_spend = false;
+                self.worlds.confirm_delete = false;
+                self.set_error("worlds", e);
+            }
         }
     }
 
@@ -863,6 +821,7 @@ impl SplatApp {
                     ui.checkbox(&mut self.show_engines, "Engines Panel");
                     ui.checkbox(&mut self.show_train, "Training Jobs Panel");
                     ui.checkbox(&mut self.show_worlds, "Marble Worlds Panel");
+                    ui.checkbox(&mut self.show_library, "Unified Library Panel");
                     ui.separator();
                     if ui.button("Reset Camera (double-click)").clicked() {
                         self.view = View::default();
@@ -971,7 +930,7 @@ impl SplatApp {
                         ui.close();
                     }
                     if ui.button("Check Marble Credits").clicked() {
-                        self.worlds_action = "credits".to_string();
+                        self.worlds.action = "credits".to_string();
                         self.do_worlds();
                         ui.close();
                     }
@@ -989,6 +948,7 @@ impl SplatApp {
                         self.show_engines = true;
                         self.show_train = true;
                         self.show_worlds = true;
+                        self.show_library = true;
                         self.status_text = "Window: layout reset".to_string();
                         ui.close();
                     }
@@ -1052,7 +1012,7 @@ impl SplatApp {
                 self.do_train();
             }
             if ui.button("Credits").clicked() {
-                self.worlds_action = "credits".to_string();
+                self.worlds.action = "credits".to_string();
                 self.do_worlds();
             }
             if ui.button("Palette (Ctrl+K)").clicked() {
@@ -1260,122 +1220,124 @@ impl SplatApp {
         if !self.show_inspector {
             return;
         }
-        egui::Panel::right("inspector").default_size(340.0).show(ui, |ui| {
-            ui.heading("Inspector");
-            card_frame(ui, |ui| {
-                ui.label(egui::RichText::new("Scene").strong());
-                if let Some(n) = self.loaded {
-                    ui.label(format!("{n} splats on GPU"));
-                } else {
-                    ui.label("no scene on GPU");
-                }
-                if let Some(v) = self.last_inspect.clone() {
-                    let count = v.get("splats").and_then(|s| s.get("count")).map(|c| c.to_string()).unwrap_or_default();
-                    let sh = v.get("splats").and_then(|s| s.get("sh_degree")).map(|c| c.to_string()).unwrap_or_default();
-                    ui.label(format!("inspected: count {count}, sh {sh}"));
-                    if let Some(bb_min) = v.get("splats").and_then(|s| s.get("bbox_min")) {
-                        ui.monospace(format!("bbox_min {bb_min}"));
+        egui::Panel::right("inspector")
+            .default_size(340.0)
+            .show(ui, |ui| {
+                ui.heading("Inspector");
+                card_frame(ui, |ui| {
+                    ui.label(egui::RichText::new("Scene").strong());
+                    if let Some(n) = self.loaded {
+                        ui.label(format!("{n} splats on GPU"));
+                    } else {
+                        ui.label("no scene on GPU");
                     }
-                    if let Some(bb_max) = v.get("splats").and_then(|s| s.get("bbox_max")) {
-                        ui.monospace(format!("bbox_max {bb_max}"));
+                    if let Some(v) = self.last_inspect.clone() {
+                        let count = v
+                            .get("splats")
+                            .and_then(|s| s.get("count"))
+                            .map(|c| c.to_string())
+                            .unwrap_or_default();
+                        let sh = v
+                            .get("splats")
+                            .and_then(|s| s.get("sh_degree"))
+                            .map(|c| c.to_string())
+                            .unwrap_or_default();
+                        ui.label(format!("inspected: count {count}, sh {sh}"));
+                        if let Some(bb_min) = v.get("splats").and_then(|s| s.get("bbox_min")) {
+                            ui.monospace(format!("bbox_min {bb_min}"));
+                        }
+                        if let Some(bb_max) = v.get("splats").and_then(|s| s.get("bbox_max")) {
+                            ui.monospace(format!("bbox_max {bb_max}"));
+                        }
+                    } else {
+                        ui.label("Run Inspect for density + SH telemetry.");
                     }
-                } else {
-                    ui.label("Run Inspect for density + SH telemetry.");
+                });
+                if self.show_engines {
+                    card_frame(ui, |ui| {
+                        ui.label(egui::RichText::new("Engines").strong());
+                        ui.small("Probe only looks for files; nothing is executed here.");
+                        if ui.button("Probe engines").clicked() {
+                            self.do_engines();
+                        }
+                    });
                 }
+                if self.show_train {
+                    card_frame(ui, |ui| {
+                        ui.label(egui::RichText::new("Training jobs").strong());
+                        ui.horizontal(|ui| {
+                            ui.label("action");
+                            egui::ComboBox::from_id_salt("train_action")
+                                .selected_text(self.train_action.clone())
+                                .show_ui(ui, |ui| {
+                                    for a in ["plan", "start", "status", "log", "cancel", "list"] {
+                                        ui.selectable_value(
+                                            &mut self.train_action,
+                                            a.to_string(),
+                                            a,
+                                        );
+                                    }
+                                });
+                        });
+                        ui.label("video path (exactly one of video / images / dataset):");
+                        ui.text_edit_singleline(&mut self.train_video);
+                        ui.label("images_dir:");
+                        ui.text_edit_singleline(&mut self.train_images);
+                        ui.label("dataset dir:");
+                        ui.text_edit_singleline(&mut self.train_dataset);
+                        ui.label("output (.ply/.spz):");
+                        ui.text_edit_singleline(&mut self.train_output);
+                        ui.horizontal(|ui| {
+                            ui.label("job_id");
+                            ui.text_edit_singleline(&mut self.train_job_id);
+                            ui.label("name");
+                            ui.text_edit_singleline(&mut self.train_name);
+                        });
+                        if ui.button("Run train action").clicked() {
+                            self.do_train();
+                        }
+                        ui.small("start spawns a detached supervisor; poll with status/log.");
+                    });
+                }
+                if self.show_library {
+                    card_frame(ui, |ui| {
+                        if let Some(chosen) = library::show(ui, &mut self.library) {
+                            self.path = chosen;
+                            self.pending_open = true;
+                            self.status_text = format!("loading {}", self.path);
+                        }
+                    });
+                }
+                if self.show_worlds {
+                    card_frame(ui, |ui| match worlds::show(ui, &mut self.worlds) {
+                        WorldsUiEvent::None => {}
+                        WorldsUiEvent::RunAction => self.do_worlds(),
+                        WorldsUiEvent::QuickGet(id) => {
+                            self.worlds.world_id = id.clone();
+                            self.do_worlds_args("get", json!({"action": "get", "world_id": id}));
+                        }
+                        WorldsUiEvent::QuickFetch(id) => {
+                            self.worlds.world_id = id.clone();
+                            let args = WorldsPanelState::fetch_args_for(&id, &self.worlds.dest);
+                            self.do_worlds_args("fetch", args);
+                        }
+                    });
+                }
+                if !self.result.is_empty() {
+                    card_frame(ui, |ui| {
+                        ui.label(egui::RichText::new(self.result_title.clone()).strong());
+                        egui::ScrollArea::vertical()
+                            .max_height(220.0)
+                            .show(ui, |ui| {
+                                ui.monospace(&self.result);
+                            });
+                        if ui.button("Copy result").clicked() {
+                            ui.ctx().copy_text(self.result.clone());
+                        }
+                    });
+                }
+                let _ = ui;
             });
-            if self.show_engines {
-                card_frame(ui, |ui| {
-                    ui.label(egui::RichText::new("Engines").strong());
-                    ui.small("Probe only looks for files; nothing is executed here.");
-                    if ui.button("Probe engines").clicked() {
-                        self.do_engines();
-                    }
-                });
-            }
-            if self.show_train {
-                card_frame(ui, |ui| {
-                    ui.label(egui::RichText::new("Training jobs").strong());
-                    ui.horizontal(|ui| {
-                        ui.label("action");
-                        egui::ComboBox::from_id_salt("train_action")
-                            .selected_text(self.train_action.clone())
-                            .show_ui(ui, |ui| {
-                                for a in ["plan", "start", "status", "log", "cancel", "list"] {
-                                    ui.selectable_value(&mut self.train_action, a.to_string(), a);
-                                }
-                            });
-                    });
-                    ui.label("video path (exactly one of video / images / dataset):");
-                    ui.text_edit_singleline(&mut self.train_video);
-                    ui.label("images_dir:");
-                    ui.text_edit_singleline(&mut self.train_images);
-                    ui.label("dataset dir:");
-                    ui.text_edit_singleline(&mut self.train_dataset);
-                    ui.label("output (.ply/.spz):");
-                    ui.text_edit_singleline(&mut self.train_output);
-                    ui.horizontal(|ui| {
-                        ui.label("job_id");
-                        ui.text_edit_singleline(&mut self.train_job_id);
-                        ui.label("name");
-                        ui.text_edit_singleline(&mut self.train_name);
-                    });
-                    if ui.button("Run train action").clicked() {
-                        self.do_train();
-                    }
-                    ui.small("start spawns a detached supervisor; poll with status/log.");
-                });
-            }
-            if self.show_worlds {
-                card_frame(ui, |ui| {
-                    ui.label(egui::RichText::new("Marble Worlds").strong());
-                    ui.small("Spend guard: dry run unless confirm_spend is set in CLI. UI never spends.");
-                    ui.horizontal(|ui| {
-                        ui.label("action");
-                        egui::ComboBox::from_id_salt("worlds_action")
-                            .selected_text(self.worlds_action.clone())
-                            .show_ui(ui, |ui| {
-                                for a in ["ledger", "credits", "generate", "status", "fetch", "list"] {
-                                    ui.selectable_value(&mut self.worlds_action, a.to_string(), a);
-                                }
-                            });
-                    });
-                    ui.label("prompt (generate):");
-                    ui.text_edit_singleline(&mut self.worlds_prompt);
-                    ui.horizontal(|ui| {
-                        ui.label("kind");
-                        ui.text_edit_singleline(&mut self.worlds_kind);
-                        ui.label("model");
-                        ui.text_edit_singleline(&mut self.worlds_model);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("operation_id");
-                        ui.text_edit_singleline(&mut self.worlds_operation_id);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("world_id");
-                        ui.text_edit_singleline(&mut self.worlds_world_id);
-                        ui.label("dest");
-                        ui.text_edit_singleline(&mut self.worlds_dest);
-                    });
-                    if ui.button("Run worlds action").clicked() {
-                        self.do_worlds();
-                    }
-                    ui.small("To store the API key, run: splatcraft-cli secret set worlds");
-                });
-            }
-            if !self.result.is_empty() {
-                card_frame(ui, |ui| {
-                    ui.label(egui::RichText::new(self.result_title.clone()).strong());
-                    egui::ScrollArea::vertical().max_height(220.0).show(ui, |ui| {
-                        ui.monospace(&self.result);
-                    });
-                    if ui.button("Copy result").clicked() {
-                        ui.ctx().copy_text(self.result.clone());
-                    }
-                });
-            }
-            let _ = ui;
-        });
     }
 
     fn viewport(&mut self, ui: &mut egui::Ui) {
@@ -1475,11 +1437,11 @@ impl SplatApp {
                                 "reset camera" => self.view = View::default(),
                                 _ if id.starts_with("worlds") => {
                                     if id.contains("ledger") {
-                                        self.worlds_action = "ledger".to_string();
+                                        self.worlds.action = "ledger".to_string();
                                     } else if id.contains("credits") {
-                                        self.worlds_action = "credits".to_string();
+                                        self.worlds.action = "credits".to_string();
                                     } else {
-                                        self.worlds_action = "generate".to_string();
+                                        self.worlds.action = "generate".to_string();
                                     }
                                     self.do_worlds();
                                 }
@@ -1669,13 +1631,13 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
     lines.push(format!("status: version {}", st["version"]));
     // Menu dispatch parity: every documented op must exist on the bus.
     let ops_arr = st["ops"].as_array().ok_or("status ops missing")?;
-    if ops_arr.len() < 14 {
+    if ops_arr.len() < 15 {
         return Err(format!(
-            "menu parity: expected 14 ops, got {}",
+            "menu parity: expected 15 ops, got {}",
             ops_arr.len()
         ));
     }
-    for name in ["mesh", "recolor", "recipe", "trellis"] {
+    for name in ["library", "mesh", "recolor", "recipe", "trellis"] {
         if !ops_arr.iter().any(|v| v.as_str() == Some(name)) {
             return Err(format!("menu parity: missing {name}"));
         }
@@ -1715,6 +1677,11 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
                 lines.push(format!("render: skipped ({e})"));
             }
             Err(e) => return Err(e.to_string()),
+        }
+        // Unified library is local and must always work.
+        let lib = dispatch("library", &json!({"action": "list"})).map_err(|e| e.to_string())?;
+        if lib["success"] != true {
+            return Err("library list failed".to_string());
         }
         // Worlds ledger is local and must always work; generation stays a dry run.
         let l = dispatch("worlds", &json!({"action": "ledger"})).map_err(|e| e.to_string())?;
