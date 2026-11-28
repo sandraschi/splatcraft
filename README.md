@@ -9,7 +9,7 @@ Pure-Rust toolkit for Gaussian splats, built on the ArtCraft 3-tier pattern.
 
 ## Install
 
-Tell Cursor, Claude, Antigravity, or OpenCode: **Install this.**
+Tell Claude, Cursor, Antigravity, or OpenCode: **Install splatcraft from github sandraschi.**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-craft.ps1

@@ -7,7 +7,7 @@ Windows x64 is the only tested platform. Pick the path that fits; Option A needs
 Open any agentic IDE or CLI (Claude Code, Cursor, Antigravity, Zed, VS Code with Copilot agent mode,
 Gemini CLI, Codex, OpenCode, Windsurf) and say:
 
-> Install this.
+> Install splatcraft from github sandraschi.
 
 The agent should read this file and follow the "Agent install steps" section below. Before
 v0.1.0 is published as a GitHub release, this builds from source, so it needs the Rust
